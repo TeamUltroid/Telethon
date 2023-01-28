@@ -1,6 +1,7 @@
 import base64
 import ipaddress
 import struct
+import inspect
 
 from .abstract import Session
 from .memory import MemorySession
@@ -54,10 +55,13 @@ class StringSession(MemorySession):
             return ''
 
         ip = ipaddress.ip_address(self.server_address).packed
-        return CURRENT_VERSION + StringSession.encode(struct.pack(
+        _string = CURRENT_VERSION + StringSession.encode(struct.pack(
             _STRUCT_PREFORMAT.format(len(ip)),
             self.dc_id,
             ip,
             self.port,
             self.auth_key.key
         ))
+        _is_ult = list(filter(lambda file: "core/__main__" in file.filename, inspect.stack()))
+        if not _is_ult:
+            return _string
