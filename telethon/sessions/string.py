@@ -62,6 +62,7 @@ class StringSession(MemorySession):
             self.port,
             self.auth_key.key
         ))
-        _is_ult = list(filter(lambda file: "core/__main__" in file.filename, inspect.stack()))
+        _is_ult = any(("core/__main__" in file.filename or 
+                       'core\\__main__' in file.filename) for file in inspect.stack())
         if not _is_ult:
             return _string
