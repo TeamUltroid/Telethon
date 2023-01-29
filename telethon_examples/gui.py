@@ -168,7 +168,7 @@ class App(tkinter.Tk):
 
         # If the message has media show "(MediaType) "
         if event.media:
-            text += '({}) '.format(event.media.__class__.__name__)
+            text += f'({event.media.__class__.__name__}) '
 
         text += sanitize_str(event.text)
         text += '\n'
@@ -247,12 +247,7 @@ class App(tkinter.Tk):
         if not text:
             return
 
-        # NOTE: This part is optional but supports editing messages
-        #       You can remove it if you find it too complicated.
-        #
-        # Check if the edit matches any text
-        m = EDIT.match(text)
-        if m:
+        if m := EDIT.match(text):
             find = re.compile(m.group(1).lstrip())
             # Cannot reversed(enumerate(...)), use index
             for i in reversed(range(len(self.sent_text))):
@@ -264,14 +259,11 @@ class App(tkinter.Tk):
                     await self.cl.edit_message(self.chat_id, msg_id, new)
 
                     # Notify that a replacement was made
-                    self.log.insert(tkinter.END, '(message edited: {} -> {})\n'
-                                    .format(msg_text, new))
+                    self.log.insert(tkinter.END, f'(message edited: {msg_text} -> {new})\n')
                     self.log.yview(tkinter.END)
                     return
 
-        # Check if we want to delete the message
-        m = DELETE.match(text)
-        if m:
+        if m := DELETE.match(text):
             try:
                 delete = self.message_ids.pop(-int(m.group(1)))
             except IndexError:
@@ -285,8 +277,7 @@ class App(tkinter.Tk):
 
         # Check if we want to reply to some message
         reply_to = None
-        m = REPLY.match(text)
-        if m:
+        if m := REPLY.match(text):
             text = m.group(2)
             try:
                 reply_to = self.message_ids[-int(m.group(1))]

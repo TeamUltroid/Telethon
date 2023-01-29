@@ -85,8 +85,7 @@ class EntityCache:
                 raise KeyError('Invalid key will not have entity') from None
 
         for cls in (types.PeerUser, types.PeerChat, types.PeerChannel):
-            result = self.__dict__.get(utils.get_peer_id(cls(item)))
-            if result:
+            if result := self.__dict__.get(utils.get_peer_id(cls(item))):
                 return result
 
         raise KeyError('No cached entity for the given key')

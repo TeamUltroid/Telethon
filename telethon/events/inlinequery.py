@@ -67,11 +67,11 @@ class InlineQuery(EventBuilder):
 
     def filter(self, event):
         if self.pattern:
-            match = self.pattern(event.text)
-            if not match:
-                return
-            event.pattern_match = match
+            if match := self.pattern(event.text):
+                event.pattern_match = match
 
+            else:
+                return
         return super().filter(event)
 
     class Event(EventCommon, SenderGetter):
