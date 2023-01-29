@@ -430,7 +430,7 @@ def get_input_media(
         media, *,
         is_photo=False, attributes=None, force_document=False,
         voice_note=False, video_note=False, supports_streaming=False,
-        ttl=None, spoiler=spoiler
+        ttl=None, spoiler=False
 ):
     """
     Similar to :meth:`get_input_peer`, but for media.
