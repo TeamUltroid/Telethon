@@ -8,8 +8,9 @@ from .tl import types
 def check_prime_and_good_check(prime: int, g: int):
     good_prime_bits_count = 2048
     if prime < 0 or prime.bit_length() != good_prime_bits_count:
-        raise ValueError('bad prime count {}, expected {}'
-                         .format(prime.bit_length(), good_prime_bits_count))
+        raise ValueError(
+            f'bad prime count {prime.bit_length()}, expected {good_prime_bits_count}'
+        )
 
     # TODO This is awfully slow
     if factorization.Factorization.factorize(prime)[0] != 1:
@@ -17,23 +18,23 @@ def check_prime_and_good_check(prime: int, g: int):
 
     if g == 2:
         if prime % 8 != 7:
-            raise ValueError('bad g {}, mod8 {}'.format(g, prime % 8))
+            raise ValueError(f'bad g {g}, mod8 {prime % 8}')
     elif g == 3:
         if prime % 3 != 2:
-            raise ValueError('bad g {}, mod3 {}'.format(g, prime % 3))
+            raise ValueError(f'bad g {g}, mod3 {prime % 3}')
     elif g == 4:
         pass
     elif g == 5:
         if prime % 5 not in (1, 4):
-            raise ValueError('bad g {}, mod5 {}'.format(g, prime % 5))
+            raise ValueError(f'bad g {g}, mod5 {prime % 5}')
     elif g == 6:
         if prime % 24 not in (19, 23):
-            raise ValueError('bad g {}, mod24 {}'.format(g, prime % 24))
+            raise ValueError(f'bad g {g}, mod24 {prime % 24}')
     elif g == 7:
         if prime % 7 not in (3, 5, 6):
-            raise ValueError('bad g {}, mod7 {}'.format(g, prime % 7))
+            raise ValueError(f'bad g {g}, mod7 {prime % 7}')
     else:
-        raise ValueError('bad g {}'.format(g))
+        raise ValueError(f'bad g {g}')
 
     prime_sub1_div2 = (prime - 1) // 2
     if factorization.Factorization.factorize(prime_sub1_div2)[0] != 1:
@@ -61,9 +62,8 @@ def check_prime_and_good(prime_bytes: bytes, g: int):
         0x0D, 0x81, 0x15, 0xF6, 0x35, 0xB1, 0x05, 0xEE, 0x2E, 0x4E, 0x15, 0xD0, 0x4B, 0x24, 0x54, 0xBF,
         0x6F, 0x4F, 0xAD, 0xF0, 0x34, 0xB1, 0x04, 0x03, 0x11, 0x9C, 0xD8, 0xE3, 0xB9, 0x2F, 0xCC, 0x5B))
 
-    if good_prime == prime_bytes:
-        if g in (3, 4, 5, 7):
-            return  # It's good
+    if good_prime == prime_bytes and g in {3, 4, 5, 7}:
+        return  # It's good
 
     check_prime_and_good_check(int.from_bytes(prime_bytes, 'big'), g)
 
@@ -94,12 +94,12 @@ def is_good_mod_exp_first(modexp, prime) -> bool:
     diff = prime - modexp
     min_diff_bits_count = 2048 - 64
     max_mod_exp_size = 256
-    if diff < 0 or \
-            diff.bit_length() < min_diff_bits_count or \
-            modexp.bit_length() < min_diff_bits_count or \
-            (modexp.bit_length() + 7) // 8 > max_mod_exp_size:
-        return False
-    return True
+    return (
+        diff >= 0
+        and diff.bit_length() >= min_diff_bits_count
+        and modexp.bit_length() >= min_diff_bits_count
+        and (modexp.bit_length() + 7) // 8 <= max_mod_exp_size
+    )
 
 
 def xor(a: bytes, b: bytes) -> bytes:

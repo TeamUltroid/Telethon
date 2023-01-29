@@ -18,11 +18,10 @@ class GzipPacked(TLObject):
 
            Note that this only applies to content related requests.
         """
-        if content_related and len(data) > 512:
-            gzipped = bytes(GzipPacked(data))
-            return gzipped if len(gzipped) < len(data) else data
-        else:
+        if not content_related or len(data) <= 512:
             return data
+        gzipped = bytes(GzipPacked(data))
+        return gzipped if len(gzipped) < len(data) else data
 
     def __bytes__(self):
         return struct.pack('<I', GzipPacked.CONSTRUCTOR_ID) + \

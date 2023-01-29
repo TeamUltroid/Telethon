@@ -16,8 +16,9 @@ class RPCError(Exception):
     message = None
 
     def __init__(self, request, message, code=None):
-        super().__init__('RPCError {}: {}{}'.format(
-            code or self.code, message, self._fmt_request(request)))
+        super().__init__(
+            f'RPCError {code or self.code}: {message}{self._fmt_request(request)}'
+        )
 
         self.request = request
         self.code = code
@@ -29,11 +30,11 @@ class RPCError(Exception):
         reason = ''
         while isinstance(request, _NESTS_QUERY):
             n += 1
-            reason += request.__class__.__name__ + '('
+            reason += f'{request.__class__.__name__}('
             request = request.query
         reason += request.__class__.__name__ + ')' * n
 
-        return ' (caused by {})'.format(reason)
+        return f' (caused by {reason})'
 
     def __reduce__(self):
         return type(self), (self.request, self.message, self.code)

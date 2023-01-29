@@ -147,20 +147,23 @@ class NewMessage(EventBuilder):
             return
         if self.outgoing and not event.message.out:
             return
-        if self.forwards is not None:
-            if bool(self.forwards) != bool(event.message.fwd_from):
-                return
+        if self.forwards is not None and bool(self.forwards) != bool(
+            event.message.fwd_from
+        ):
+            return
 
-        if self.from_users is not None:
-            if event.message.sender_id not in self.from_users:
-                return
+        if (
+            self.from_users is not None
+            and event.message.sender_id not in self.from_users
+        ):
+            return
 
         if self.pattern:
-            match = self.pattern(event.message.message or '')
-            if not match:
-                return
-            event.pattern_match = match
+            if match := self.pattern(event.message.message or ''):
+                event.pattern_match = match
 
+            else:
+                return
         return super().filter(event)
 
     class Event(EventCommon):

@@ -45,15 +45,12 @@ class SenderGetter(abc.ABC):
         # the user explicitly called a method. If the user is okay with
         # cached information, they may use the property instead.
         if (self._sender is None or getattr(self._sender, 'min', None)) \
-                and await self.get_input_sender():
-            # self.get_input_sender may refresh in which case the sender may no longer be min
-            # However it could still incur a cost so the cheap check is done twice instead.
-            if self._sender is None or getattr(self._sender, 'min', None):
-                try:
-                    self._sender =\
+                    and await self.get_input_sender():
+            try:
+                self._sender =\
                         await self._client.get_entity(self._input_sender)
-                except ValueError:
-                    await self._refetch_sender()
+            except ValueError:
+                await self._refetch_sender()
         return self._sender
 
     @property

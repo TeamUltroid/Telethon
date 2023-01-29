@@ -46,7 +46,4 @@ class Raw(EventBuilder):
 
     def filter(self, event):
         if not self.types or isinstance(event, self.types):
-            if self.func:
-                # Return the result of func directly as it may need to be awaited
-                return self.func(event)
-            return event
+            return self.func(event) if self.func else event

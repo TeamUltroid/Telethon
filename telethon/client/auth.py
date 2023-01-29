@@ -223,8 +223,7 @@ class AuthMethods:
             attempts += 1
         else:
             raise RuntimeError(
-                '{} consecutive sign-in attempts failed. Aborting'
-                .format(max_attempts)
+                f'{max_attempts} consecutive sign-in attempts failed. Aborting'
             )
 
         if two_step_detected:
@@ -272,11 +271,10 @@ class AuthMethods:
                 'Please make sure to call send_code_request first.'
             )
 
-        phone_hash = phone_hash or self._phone_code_hash.get(phone, None)
-        if not phone_hash:
+        if phone_hash := phone_hash or self._phone_code_hash.get(phone, None):
+            return phone, phone_hash
+        else:
             raise ValueError('You also need to provide a phone_code_hash.')
-
-        return phone, phone_hash
 
     async def sign_in(
             self: 'TelegramClient',
@@ -450,11 +448,11 @@ class AuthMethods:
                 t = self.parse_mode.unparse(self._tos.text, self._tos.entities)
             else:
                 t = self._tos.text
-            sys.stderr.write("{}\n".format(t))
+            sys.stderr.write(f"{t}\n")
             sys.stderr.flush()
 
         phone, phone_code_hash = \
-            self._parse_phone_and_hash(phone, phone_code_hash)
+                self._parse_phone_and_hash(phone, phone_code_hash)
 
         result = await self(functions.auth.SignUpRequest(
             phone_number=phone,

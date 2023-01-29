@@ -45,13 +45,13 @@ class HTMLToTelegramParser(HTMLParser):
         attrs = dict(attrs)
         EntityType = None
         args = {}
-        if tag == 'strong' or tag == 'b':
+        if tag in ['strong', 'b']:
             EntityType = MessageEntityBold
-        elif tag == 'em' or tag == 'i':
+        elif tag in ['em', 'i']:
             EntityType = MessageEntityItalic
         elif tag == 'u':
             EntityType = MessageEntityUnderline
-        elif tag == 'del' or tag == 's':
+        elif tag in ['del', 's']:
             EntityType = MessageEntityStrike
         elif tag == 'blockquote':
             EntityType = MessageEntityBlockquote
@@ -81,13 +81,12 @@ class HTMLToTelegramParser(HTMLParser):
             if url.startswith('mailto:'):
                 url = url[len('mailto:'):]
                 EntityType = MessageEntityEmail
+            elif self.get_starttag_text() == url:
+                EntityType = MessageEntityUrl
             else:
-                if self.get_starttag_text() == url:
-                    EntityType = MessageEntityUrl
-                else:
-                    EntityType = MessageEntityTextUrl
-                    args['url'] = _del_surrogate(url)
-                    url = None
+                EntityType = MessageEntityTextUrl
+                args['url'] = _del_surrogate(url)
+                url = None
             self._open_tags_meta.popleft()
             self._open_tags_meta.appendleft(url)
 
@@ -101,8 +100,7 @@ class HTMLToTelegramParser(HTMLParser):
     def handle_data(self, text):
         previous_tag = self._open_tags[0] if len(self._open_tags) > 0 else ''
         if previous_tag == 'a':
-            url = self._open_tags_meta[0]
-            if url:
+            if url := self._open_tags_meta[0]:
                 text = url
 
         for tag, entity in self._building_entities.items():
@@ -116,8 +114,7 @@ class HTMLToTelegramParser(HTMLParser):
             self._open_tags_meta.popleft()
         except IndexError:
             pass
-        entity = self._building_entities.pop(tag, None)
-        if entity:
+        if entity := self._building_entities.pop(tag, None):
             self.entities.append(entity)
 
 
@@ -186,38 +183,32 @@ def unparse(text: str, entities: Iterable[TypeMessageEntity], _offset: int = 0,
         entity_type = type(entity)
 
         if entity_type == MessageEntityBold:
-            html.append('<strong>{}</strong>'.format(entity_text))
+            html.append(f'<strong>{entity_text}</strong>')
         elif entity_type == MessageEntityItalic:
-            html.append('<em>{}</em>'.format(entity_text))
+            html.append(f'<em>{entity_text}</em>')
         elif entity_type == MessageEntityCode:
-            html.append('<code>{}</code>'.format(entity_text))
+            html.append(f'<code>{entity_text}</code>')
         elif entity_type == MessageEntityUnderline:
-            html.append('<u>{}</u>'.format(entity_text))
+            html.append(f'<u>{entity_text}</u>')
         elif entity_type == MessageEntityStrike:
-            html.append('<del>{}</del>'.format(entity_text))
+            html.append(f'<del>{entity_text}</del>')
         elif entity_type == MessageEntityBlockquote:
-            html.append('<blockquote>{}</blockquote>'.format(entity_text))
+            html.append(f'<blockquote>{entity_text}</blockquote>')
         elif entity_type == MessageEntityPre:
             if entity.language:
                 html.append(
-                    "<pre>\n"
-                    "    <code class='language-{}'>\n"
-                    "        {}\n"
-                    "    </code>\n"
-                    "</pre>".format(entity.language, entity_text))
+                    f"<pre>\n    <code class='language-{entity.language}'>\n        {entity_text}\n    </code>\n</pre>"
+                )
             else:
-                html.append('<pre><code>{}</code></pre>'
-                            .format(entity_text))
+                html.append(f'<pre><code>{entity_text}</code></pre>')
         elif entity_type == MessageEntityEmail:
             html.append('<a href="mailto:{0}">{0}</a>'.format(entity_text))
         elif entity_type == MessageEntityUrl:
             html.append('<a href="{0}">{0}</a>'.format(entity_text))
         elif entity_type == MessageEntityTextUrl:
-            html.append('<a href="{}">{}</a>'
-                        .format(escape(entity.url), entity_text))
+            html.append(f'<a href="{escape(entity.url)}">{entity_text}</a>')
         elif entity_type == MessageEntityMentionName:
-            html.append('<a href="tg://user?id={}">{}</a>'
-                        .format(entity.user_id, entity_text))
+            html.append(f'<a href="tg://user?id={entity.user_id}">{entity_text}</a>')
         else:
             skip_entity = True
         last_offset = relative_offset + (0 if skip_entity else length)
