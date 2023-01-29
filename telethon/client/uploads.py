@@ -671,7 +671,7 @@ class UploadMethods:
             progress_callback=None, attributes=None, thumb=None,
             allow_cache=True, voice_note=False, video_note=False,
             supports_streaming=False, mime_type=None, as_image=None,
-            ttl=None, spoiler=spoiler):
+            ttl=None, spoiler=False):
         if not file:
             return None, None, None
 

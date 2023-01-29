@@ -640,7 +640,8 @@ class MessageMethods:
             background: bool = None,
             supports_streaming: bool = False,
             schedule: 'hints.DateLike' = None,
-            comment_to: 'typing.Union[int, types.Message]' = None
+            comment_to: 'typing.Union[int, types.Message]' = None,
+            spoiler: bool = False
     ) -> 'types.Message':
         """
         Sends a message to the specified user, chat or channel.
@@ -821,7 +822,8 @@ class MessageMethods:
                 buttons=buttons, clear_draft=clear_draft, silent=silent,
                 schedule=schedule, supports_streaming=supports_streaming,
                 formatting_entities=formatting_entities,
-                comment_to=comment_to, background=background
+                comment_to=comment_to, background=background,
+                spoiler=spoiler
             )
 
         entity = await self.get_input_entity(entity)
