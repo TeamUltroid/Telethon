@@ -35,9 +35,8 @@ def main():
             str_code = code.replace('%d', 'X')
             if error := self_errors.get(str_code):
                 error.int_codes.append(int_code)  # de-duplicated once later
-                if not error.description:  # prefer our descriptions
-                    if not error.has_captures:  # need descriptions with specific text if error has captures
-                        error.description = get_desc(code)
+                if not error.description and not error.has_captures:
+                    error.description = get_desc(code)
             else:
                 self_errors[str_code] = Error([int_code], str_code, get_desc(code))
 

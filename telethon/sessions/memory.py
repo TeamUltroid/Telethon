@@ -142,8 +142,7 @@ class MemorySession(Session):
 
         rows = []  # Rows to add (id, hash, username, phone, name)
         for e in entities:
-            row = self._entity_to_row(e)
-            if row:
+            if row := self._entity_to_row(e):
                 rows.append(row)
         return rows
 
@@ -176,14 +175,13 @@ class MemorySession(Session):
             if exact:
                 return next((id, hash) for found_id, hash, _, _, _
                             in self._entities if found_id == id)
-            else:
-                ids = (
-                    utils.get_peer_id(PeerUser(id)),
-                    utils.get_peer_id(PeerChat(id)),
-                    utils.get_peer_id(PeerChannel(id))
-                )
-                return next((id, hash) for found_id, hash, _, _, _
-                            in self._entities if found_id in ids)
+            ids = (
+                utils.get_peer_id(PeerUser(id)),
+                utils.get_peer_id(PeerChat(id)),
+                utils.get_peer_id(PeerChannel(id))
+            )
+            return next((id, hash) for found_id, hash, _, _, _
+                        in self._entities if found_id in ids)
         except StopIteration:
             pass
 
@@ -205,17 +203,14 @@ class MemorySession(Session):
 
         result = None
         if isinstance(key, str):
-            phone = utils.parse_phone(key)
-            if phone:
+            if phone := utils.parse_phone(key):
                 result = self.get_entity_rows_by_phone(phone)
             else:
                 username, invite = utils.parse_username(key)
                 if username and not invite:
                     result = self.get_entity_rows_by_username(username)
-                else:
-                    tup = utils.resolve_invite_link(key)[1]
-                    if tup:
-                        result = self.get_entity_rows_by_id(tup, exact=False)
+                elif tup := utils.resolve_invite_link(key)[1]:
+                    result = self.get_entity_rows_by_id(tup, exact=False)
 
         elif isinstance(key, int):
             result = self.get_entity_rows_by_id(key, exact)
@@ -223,22 +218,21 @@ class MemorySession(Session):
         if not result and isinstance(key, str):
             result = self.get_entity_rows_by_name(key)
 
-        if result:
-            entity_id, entity_hash = result  # unpack resulting tuple
-            entity_id, kind = utils.resolve_id(entity_id)
-            # removes the mark and returns type of entity
-            if kind == PeerUser:
-                return InputPeerUser(entity_id, entity_hash)
-            elif kind == PeerChat:
-                return InputPeerChat(entity_id)
-            elif kind == PeerChannel:
-                return InputPeerChannel(entity_id, entity_hash)
-        else:
+        if not result:
             raise ValueError('Could not find input entity with key ', key)
+        entity_id, entity_hash = result  # unpack resulting tuple
+        entity_id, kind = utils.resolve_id(entity_id)
+        # removes the mark and returns type of entity
+        if kind == PeerUser:
+            return InputPeerUser(entity_id, entity_hash)
+        elif kind == PeerChat:
+            return InputPeerChat(entity_id)
+        elif kind == PeerChannel:
+            return InputPeerChannel(entity_id, entity_hash)
 
     def cache_file(self, md5_digest, file_size, instance):
         if not isinstance(instance, (InputDocument, InputPhoto)):
-            raise TypeError('Cannot cache %s instance' % type(instance))
+            raise TypeError(f'Cannot cache {type(instance)} instance')
         key = (md5_digest, file_size, _SentFileType.from_type(type(instance)))
         value = (instance.id, instance.access_hash)
         self._files[key] = value

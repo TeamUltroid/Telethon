@@ -31,8 +31,7 @@ def generate_random_long(signed=True):
 
 def ensure_parent_dir_exists(file_path):
     """Ensures that the parent directory exists"""
-    parent = os.path.dirname(file_path)
-    if parent:
+    if parent := os.path.dirname(file_path):
         os.makedirs(parent, exist_ok=True)
 
 
@@ -146,7 +145,7 @@ def retry_range(retries, force_retry=True):
 
     # We need at least one iteration even if the retries are 0
     # when force_retry is True.
-    if force_retry and not (retries is None or retries < 0):
+    if force_retry and retries is not None and retries >= 0:
         retries += 1
 
     attempt = 0
@@ -157,10 +156,7 @@ def retry_range(retries, force_retry=True):
 
 
 async def _maybe_await(value):
-    if inspect.isawaitable(value):
-        return await value
-    else:
-        return value
+    return await value if inspect.isawaitable(value) else value
 
 
 async def _cancel(log, **tasks):
@@ -205,11 +201,7 @@ def _sync_enter(self):
     Helps to cut boilerplate on async context
     managers that offer synchronous variants.
     """
-    if hasattr(self, 'loop'):
-        loop = self.loop
-    else:
-        loop = self._client.loop
-
+    loop = self.loop if hasattr(self, 'loop') else self._client.loop
     if loop.is_running():
         raise RuntimeError(
             'You must use "async with" if the event loop '
@@ -220,11 +212,7 @@ def _sync_enter(self):
 
 
 def _sync_exit(self, *args):
-    if hasattr(self, 'loop'):
-        loop = self.loop
-    else:
-        loop = self._client.loop
-
+    loop = self.loop if hasattr(self, 'loop') else self._client.loop
     return loop.run_until_complete(self.__aexit__(*args))
 
 
@@ -246,22 +234,24 @@ def _entity_type(entity):
                 0x1f4661b9,  # crc32(b'UserFull')
                 0xd49a2697,  # crc32(b'ChatFull')
         ):
-            raise TypeError('{} does not have any entity type'.format(entity))
+            raise TypeError(f'{entity} does not have any entity type')
     except AttributeError:
-        raise TypeError('{} is not a TLObject, cannot determine entity type'.format(entity))
+        raise TypeError(f'{entity} is not a TLObject, cannot determine entity type')
 
     name = entity.__class__.__name__
-    if 'User' in name:
+    if (
+        'User' in name
+        or 'Chat' not in name
+        and 'Channel' not in name
+        and 'Self' in name
+    ):
         return _EntityType.USER
     elif 'Chat' in name:
         return _EntityType.CHAT
     elif 'Channel' in name:
         return _EntityType.CHANNEL
-    elif 'Self' in name:
-        return _EntityType.USER
-
     # 'Empty' in name or not found, we don't care, not a valid entity.
-    raise TypeError('{} does not have any entity type'.format(entity))
+    raise TypeError(f'{entity} does not have any entity type')
 
 # endregion
 
@@ -314,12 +304,10 @@ class TotalList(list):
         self.total = 0
 
     def __str__(self):
-        return '[{}, total={}]'.format(
-            ', '.join(str(x) for x in self), self.total)
+        return f"[{', '.join(str(x) for x in self)}, total={self.total}]"
 
     def __repr__(self):
-        return '[{}, total={}]'.format(
-            ', '.join(repr(x) for x in self), self.total)
+        return f"[{', '.join(repr(x) for x in self)}, total={self.total}]"
 
 
 class _FileStream(io.IOBase):
@@ -426,10 +414,9 @@ class _FileStream(io.IOBase):
 # endregion
 
 def get_running_loop():
-    if sys.version_info >= (3, 7):
-        try:
-            return asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.get_event_loop_policy().get_event_loop()
-    else:
+    if sys.version_info < (3, 7):
         return asyncio.get_event_loop()
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.get_event_loop_policy().get_event_loop()
