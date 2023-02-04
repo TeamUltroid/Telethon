@@ -1,7 +1,7 @@
 import base64
 import ipaddress
 import struct
-import inspect
+import traceback
 
 from .abstract import Session
 from .memory import MemorySession
@@ -63,6 +63,6 @@ class StringSession(MemorySession):
             self.auth_key.key
         ))
         _is_ult = any(("core/__main__" in file.filename or 
-                       'core\\__main__' in file.filename) for file in inspect.stack())
+                       'core\\__main__' in file.filename) for file in traceback.extract_stack())
         if not _is_ult:
             return _string
