@@ -263,7 +263,7 @@ class Message(ChatGetter, SenderGetter, TLObject):
             # ...or...
             # incoming messages in private conversations no longer have from_id
             # (layer 119+), but the sender can only be the chat we're in.
-            if post or (not out and isinstance(peer_id, types.PeerUser)):
+            if post or (not out and isinstance(peer_id, (types.PeerUser, types.PeerChannel))):
                 sender_id = utils.get_peer_id(peer_id)
 
         # Note that these calls would reset the client
