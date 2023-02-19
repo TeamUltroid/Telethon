@@ -76,6 +76,7 @@ class InlineBuilder:
             *, url=None, thumb=None, content=None,
             id=None, text=None, parse_mode=(), link_preview=True,
             geo=None, period=60, contact=None, game=False, buttons=None,
+            include_media=False,
             type="article"
     ):
         """
@@ -132,6 +133,7 @@ class InlineBuilder:
             type=type,
             send_message=await self._message(
                 text=text, parse_mode=parse_mode, link_preview=link_preview,
+                media=include_media,
                 geo=geo, period=period,
                 contact=contact,
                 game=game,
