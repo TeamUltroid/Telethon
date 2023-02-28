@@ -30,9 +30,8 @@ def rpc_message_to_error(rpc_error, request):
         return cls(request=request)
 
     for msg_regex, cls in rpc_errors_re:
-        m = re.match(msg_regex, rpc_error.error_message)
-        if m:
-            capture = int(m.group(1)) if m.groups() else None
+        if m := re.match(msg_regex, rpc_error.error_message):
+            capture = int(m[1]) if m.groups() else None
             return cls(request=request, capture=capture)
 
     # Some errors are negative:

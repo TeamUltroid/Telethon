@@ -23,15 +23,14 @@ def _get_file_name(tlobject):
     # Courtesy of http://stackoverflow.com/a/1176023/4759433
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     result = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-    return '{}.html'.format(result)
+    return f'{result}.html'
 
 
 def get_import_code(tlobject):
     """``TLObject -> from ... import ...``."""
     kind = 'functions' if tlobject.is_function else 'types'
-    ns = '.' + tlobject.namespace if tlobject.namespace else ''
-    return 'from telethon.tl.{}{} import {}'\
-        .format(kind, ns, tlobject.class_name)
+    ns = f'.{tlobject.namespace}' if tlobject.namespace else ''
+    return f'from telethon.tl.{kind}{ns} import {tlobject.class_name}'
 
 
 def _get_path_for(tlobject):
@@ -46,7 +45,7 @@ def _get_path_for(tlobject):
 def _get_path_for_type(type_):
     """Similar to `_get_path_for` but for only type names."""
     if type_.lower() in CORE_TYPES:
-        return Path('index.html#%s' % type_.lower())
+        return Path(f'index.html#{type_.lower()}')
     elif '.' in type_:
         namespace, name = type_.split('.')
         return Path('types', namespace, _get_file_name(name))
@@ -117,12 +116,13 @@ def _generate_index(folder, paths,
                          .replace(os.path.sep, '/').title())
 
         if bots_index:
-            docs.write_text('These are the methods that you may be able to '
-                            'use as a bot. Click <a href="{}">here</a> to '
-                            'view them all.'.format(INDEX))
+            docs.write_text(
+                f'These are the methods that you may be able to use as a bot. Click <a href="{INDEX}">here</a> to view them all.'
+            )
         else:
-            docs.write_text('Click <a href="{}">here</a> to view the methods '
-                            'that you can use as a bot.'.format(BOT_INDEX))
+            docs.write_text(
+                f'Click <a href="{BOT_INDEX}">here</a> to view the methods that you can use as a bot.'
+            )
         if namespaces:
             docs.write_title('Namespaces', level=3)
             docs.begin_table(4)
@@ -131,10 +131,11 @@ def _generate_index(folder, paths,
                 # For every namespace, also write the index of it
                 namespace_paths = []
                 if bots_index:
-                    for item in bots_index_paths:
-                        if item.parent == namespace:
-                            namespace_paths.append(item)
-
+                    namespace_paths.extend(
+                        item
+                        for item in bots_index_paths
+                        if item.parent == namespace
+                    )
                 _generate_index(namespace, paths,
                                 bots_index, namespace_paths)
 
@@ -339,7 +340,7 @@ def _write_html_pages(tlobjects, methods, layer, input_res):
                     # Type row
                     friendly_type = 'flag' if arg.type == 'true' else arg.type
                     if arg.is_generic:
-                        docs.add_row('!' + friendly_type, align='center')
+                        docs.add_row(f'!{friendly_type}', align='center')
                     else:
                         docs.add_row(
                             friendly_type, align='center',
@@ -431,11 +432,7 @@ def _write_html_pages(tlobjects, methods, layer, input_res):
             out_dir.mkdir(parents=True, exist_ok=True)
 
         # Since we don't have access to the full TLObject, split the type
-        if '.' in t:
-            namespace, name = t.split('.')
-        else:
-            namespace, name = None, t
-
+        namespace, name = t.split('.') if '.' in t else (None, t)
         with DocsWriter(filename, _get_path_for_type) as docs:
             docs.write_head(title=snake_to_camel_case(name),
                             css_path=paths['css'],
@@ -553,7 +550,7 @@ def _write_html_pages(tlobjects, methods, layer, input_res):
         else:
             cs.append(tlobject)
 
-        if not tlobject.result.lower() in CORE_TYPES:
+        if tlobject.result.lower() not in CORE_TYPES:
             if re.search('^vector<', tlobject.result, re.IGNORECASE):
                 types.add(tlobject.innermost_result)
             else:

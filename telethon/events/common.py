@@ -120,11 +120,7 @@ class EventBuilder(abc.ABC):
                 # If it doesn't match but it's a whitelist ignore.
                 return
 
-        if not self.func:
-            return True
-
-        # Return the result of func directly as it may need to be awaited
-        return self.func(event)
+        return self.func(event) if self.func else True
 
 
 class EventCommon(ChatGetter, abc.ABC):
@@ -180,7 +176,7 @@ class EventCommon(ChatGetter, abc.ABC):
 def name_inner_event(cls):
     """Decorator to rename cls.Event 'Event' as 'cls.Event'"""
     if hasattr(cls, 'Event'):
-        cls.Event._event_name = '{}.Event'.format(cls.__name__)
+        cls.Event._event_name = f'{cls.__name__}.Event'
     else:
-        warnings.warn('Class {} does not have a inner Event'.format(cls))
+        warnings.warn(f'Class {cls} does not have a inner Event')
     return cls

@@ -67,10 +67,10 @@ class CallbackQuery(EventBuilder):
         if isinstance(pattern, str):
             pattern = pattern.encode('utf-8')
 
-        match = data if data else pattern
+        match = data or pattern
 
         if isinstance(match, bytes):
-            self.match = data if data else re.compile(pattern).match
+            self.match = data or re.compile(pattern).match
         elif not match or callable(match):
             self.match = match
         elif hasattr(match, 'match') and callable(match.match):
@@ -118,10 +118,7 @@ class CallbackQuery(EventBuilder):
             elif event.query.data != self.match:
                 return
 
-        if self.func:
-            # Return the result of func directly as it may need to be awaited
-            return self.func(event)
-        return True
+        return self.func(event) if self.func else True
 
     class Event(EventCommon, SenderGetter):
         """
