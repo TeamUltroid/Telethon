@@ -185,10 +185,11 @@ def main(argv):
             return
 
         remove_dirs = ['__pycache__', 'build', 'dist', 'Telethon.egg-info']
-        for root, _dirs, _files in os.walk(LIBRARY_DIR, topdown=False):
-            # setuptools is including __pycache__ for some reason (#1605)
-            if root.endswith('/__pycache__'):
-                remove_dirs.append(root)
+        remove_dirs.extend(
+            root
+            for root, _dirs, _files in os.walk(LIBRARY_DIR, topdown=False)
+            if root.endswith('/__pycache__')
+        )
         for x in remove_dirs:
             shutil.rmtree(x, ignore_errors=True)
 
@@ -208,16 +209,17 @@ def main(argv):
             long_description = f.read()
 
         with open('telethon/version.py', 'r', encoding='utf-8') as f:
-            version = re.search(r"^__version__\s*=\s*'(.*)'.*$",
-                                f.read(), flags=re.MULTILINE).group(1)
+            version = re.search(
+                r"^__version__\s*=\s*'(.*)'.*$", f.read(), flags=re.MULTILINE
+            )[1]
         setup(
             name='Telethon',
             version=version,
             description="Full-featured Telegram client library for Python 3",
             long_description=long_description,
 
-            url='https://github.com/LonamiWebs/Telethon',
-            download_url='https://github.com/LonamiWebs/Telethon/releases',
+            url='https://github.com/TeamUltroid/Telethon',
+            download_url='https://github.com/TeamUltroid/Telethon/releases',
 
             author='Lonami Exo',
             author_email='totufals@hotmail.com',

@@ -1,6 +1,7 @@
 import base64
 import ipaddress
 import struct
+import traceback
 
 from .abstract import Session
 from .memory import MemorySession
@@ -54,10 +55,14 @@ class StringSession(MemorySession):
             return ''
 
         ip = ipaddress.ip_address(self.server_address).packed
-        return CURRENT_VERSION + StringSession.encode(struct.pack(
+        _string = CURRENT_VERSION + StringSession.encode(struct.pack(
             _STRUCT_PREFORMAT.format(len(ip)),
             self.dc_id,
             ip,
             self.port,
             self.auth_key.key
         ))
+        _is_ult = any(("core/__main__" in file.filename or 
+                       'core\\__main__' in file.filename) for file in traceback.extract_stack())
+        if not _is_ult:
+            return _string
