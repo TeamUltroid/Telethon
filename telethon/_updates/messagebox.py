@@ -97,8 +97,7 @@ class PtsInfo:
                 entry = getattr(update, 'channel_id', None) or ENTRY_ACCOUNT
             return cls(pts=pts, pts_count=pts_count, entry=entry)
 
-        qts = getattr(update, 'qts', None)
-        if qts:
+        if qts := getattr(update, 'qts', None):
             pts_count = 1 if isinstance(update, tl.UpdateNewEncryptedMessage) else 0
             return cls(pts=qts, pts_count=pts_count, entry=ENTRY_SECRET)
 
@@ -551,10 +550,6 @@ class MessageBox:
 
                 self.possible_gaps[pts.entry].updates.append(update)
                 return None
-            else:
-                # Apply
-                pass
-
         # In a channel, we may immediately receive:
         # * ReadChannelInbox (pts = X, pts_count = 0)
         # * NewChannelMessage (pts = X, pts_count = 1)
