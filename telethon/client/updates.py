@@ -333,8 +333,9 @@ class UpdateMethods:
                     updates_to_dispatch.extend(self._preprocess_updates(updates, users, chats))
                     continue
 
-                get_diff = self._message_box.get_channel_difference(self._mb_entity_cache)
-                if get_diff:
+                if get_diff := self._message_box.get_channel_difference(
+                    self._mb_entity_cache
+                ):
                     self._log[__name__].debug('Getting difference for channel %s updates', get_diff.channel.channel_id)
                     try:
                         diff = await self(get_diff)
@@ -419,16 +420,15 @@ class UpdateMethods:
 
                 deadline = self._message_box.check_deadlines()
                 deadline_delay = deadline - get_running_loop().time()
-                if deadline_delay > 0:
-                    # Don't bother sleeping and timing out if the delay is already 0 (pollutes the logs).
-                    try:
-                        updates = await asyncio.wait_for(self._updates_queue.get(), deadline_delay)
-                    except asyncio.TimeoutError:
-                        self._log[__name__].debug('Timeout waiting for updates expired')
-                        continue
-                else:
+                if deadline_delay <= 0:
                     continue
 
+                # Don't bother sleeping and timing out if the delay is already 0 (pollutes the logs).
+                try:
+                    updates = await asyncio.wait_for(self._updates_queue.get(), deadline_delay)
+                except asyncio.TimeoutError:
+                    self._log[__name__].debug('Timeout waiting for updates expired')
+                    continue
                 processed = []
                 try:
                     users, chats = self._message_box.process_updates(updates, self._mb_entity_cache, processed)
@@ -510,16 +510,13 @@ class UpdateMethods:
         built = EventBuilderDict(self, update, others)
         for conv_set in self._conversations.values():
             for conv in conv_set:
-                ev = built[events.NewMessage]
-                if ev:
+                if ev := built[events.NewMessage]:
                     conv._on_new_message(ev)
 
-                ev = built[events.MessageEdited]
-                if ev:
+                if ev := built[events.MessageEdited]:
                     conv._on_edit(ev)
 
-                ev = built[events.MessageRead]
-                if ev:
+                if ev := built[events.MessageRead]:
                     conv._on_read(ev)
 
                 if conv._custom:
@@ -610,37 +607,6 @@ class UpdateMethods:
                                         'after reconnect: %s: %s', type(e), e)
 
         return
-        try:
-            self._log[__name__].info(
-                'Asking for the current state after reconnect...')
-
-            # TODO consider:
-            # If there aren't many updates while the client is disconnected
-            # (I tried with up to 20), Telegram seems to send them without
-            # asking for them (via updates.getDifference).
-            #
-            # On disconnection, the library should probably set a "need
-            # difference" or "catching up" flag so that any new updates are
-            # ignored, and then the library should call updates.getDifference
-            # itself to fetch them.
-            #
-            # In any case (either there are too many updates and Telegram
-            # didn't send them, or there isn't a lot and Telegram sent them
-            # but we dropped them), we fetch the new difference to get all
-            # missed updates. I feel like this would be the best solution.
-
-            # If a disconnection occurs, the old known state will be
-            # the latest one we were aware of, so we can catch up since
-            # the most recent state we were aware of.
-            await self.catch_up()
-
-            self._log[__name__].info('Successfully fetched missed updates')
-        except errors.RPCError as e:
-            self._log[__name__].warning('Failed to get missed updates after '
-                                        'reconnect: %r', e)
-        except Exception:
-            self._log[__name__].exception(
-                'Unhandled exception while getting update difference after reconnect')
 
     # endregion
 

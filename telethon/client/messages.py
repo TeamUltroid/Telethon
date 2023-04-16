@@ -269,11 +269,7 @@ class _MessagesIter(RequestIter):
             self.request.offset_date = last_message.date
 
         if isinstance(self.request, functions.messages.SearchGlobalRequest):
-            if last_message.input_chat:
-                self.request.offset_peer = last_message.input_chat
-            else:
-                self.request.offset_peer = types.InputPeerEmpty()
-
+            self.request.offset_peer = last_message.input_chat or types.InputPeerEmpty()
             self.request.offset_rate = getattr(response, 'next_rate', 0)
 
 
@@ -634,6 +630,7 @@ class MessageMethods:
             schedule: 'hints.DateLike' = None,
             comment_to: 'typing.Union[int, types.Message]' = None,
             nosound_video: bool = None,
+            spoiler: bool = False
     ) -> 'types.Message':
         """
         Sends a message to the specified user, chat or channel.
@@ -825,6 +822,7 @@ class MessageMethods:
                 formatting_entities=formatting_entities,
                 comment_to=comment_to, background=background,
                 nosound_video=nosound_video,
+                spoiler=spoiler
             )
 
         entity = await self.get_input_entity(entity)
@@ -919,7 +917,10 @@ class MessageMethods:
             with_my_score: bool = None,
             silent: bool = None,
             as_album: bool = None,
-            schedule: 'hints.DateLike' = None
+            drop_author: bool = None,
+            drop_media_captions: bool = None,
+            schedule: 'hints.DateLike' = None,
+            **kwargs
     ) -> 'typing.Sequence[types.Message]':
         """
         Forwards the given messages to the specified entity.
@@ -1031,7 +1032,10 @@ class MessageMethods:
                 silent=silent,
                 background=background,
                 with_my_score=with_my_score,
-                schedule_date=schedule
+                schedule_date=schedule,
+                drop_author=drop_author,
+                drop_media_captions=drop_media_captions,
+                **kwargs
             )
             result = await self(req)
             sent.extend(self._get_response_message(req, result, entity))

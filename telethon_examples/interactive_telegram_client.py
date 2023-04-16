@@ -23,9 +23,9 @@ def sprint(string, *args, **kwargs):
 def print_title(title):
     """Helper function to print titles to the console more nicely"""
     sprint('\n')
-    sprint('=={}=='.format('=' * len(title)))
-    sprint('= {} ='.format(title))
-    sprint('=={}=='.format('=' * len(title)))
+    sprint(f"=={'=' * len(title)}==")
+    sprint(f'= {title} =')
+    sprint(f"=={'=' * len(title)}==")
 
 
 def bytes_to_string(byte_count):
@@ -154,13 +154,13 @@ class InteractiveTelegramClient(TelegramClient):
         # are much easier to use.
         self.add_event_handler(self.message_handler, events.NewMessage)
 
+        # Retrieve the top dialogs. You can set the limit to None to
+        # retrieve all of them if you wish, but beware that may take
+        # a long time if you have hundreds of them.
+        dialog_count = 15
+
         # Enter a while loop to chat as long as the user wants
         while True:
-            # Retrieve the top dialogs. You can set the limit to None to
-            # retrieve all of them if you wish, but beware that may take
-            # a long time if you have hundreds of them.
-            dialog_count = 15
-
             # Entities represent the user, chat or channel
             # corresponding to the dialog on the same index.
             dialogs = await self.get_dialogs(limit=dialog_count)
@@ -171,7 +171,7 @@ class InteractiveTelegramClient(TelegramClient):
 
                 # Display them so the user can choose
                 for i, dialog in enumerate(dialogs, start=1):
-                    sprint('{}. {}'.format(i, get_display_name(dialog.entity)))
+                    sprint(f'{i}. {get_display_name(dialog.entity)}')
 
                 # Let the user decide who they want to talk to
                 print()
@@ -194,7 +194,7 @@ class InteractiveTelegramClient(TelegramClient):
                     return
 
                 try:
-                    i = int(i if i else 0) - 1
+                    i = int(i or 0) - 1
                     # Ensure it is inside the bounds, otherwise retry
                     if not 0 <= i < dialog_count:
                         i = None
@@ -205,7 +205,7 @@ class InteractiveTelegramClient(TelegramClient):
             entity = dialogs[i].entity
 
             # Show some information
-            print_title('Chat with "{}"'.format(get_display_name(entity)))
+            print_title(f'Chat with "{get_display_name(entity)}"')
             print('Available commands:')
             print('  !q:  Quits the current chat.')
             print('  !Q:  Quits the current chat and exits.')
@@ -227,7 +227,6 @@ class InteractiveTelegramClient(TelegramClient):
                 elif msg == '!Q':
                     return
 
-                # History
                 elif msg == '!h':
                     # First retrieve the messages and some information
                     messages = await self.get_messages(entity, limit=10)
@@ -245,8 +244,7 @@ class InteractiveTelegramClient(TelegramClient):
                         # Format the message content
                         if getattr(msg, 'media', None):
                             self.found_media[msg.id] = msg
-                            content = '<{}> {}'.format(
-                                type(msg.media).__name__, msg.message)
+                            content = f'<{type(msg.media).__name__}> {msg.message}'
 
                         elif hasattr(msg, 'message'):
                             content = msg.message
@@ -257,34 +255,28 @@ class InteractiveTelegramClient(TelegramClient):
                             content = type(msg).__name__
 
                         # And print it to the user
-                        sprint('[{}:{}] (ID={}) {}: {}'.format(
-                            msg.date.hour, msg.date.minute, msg.id, name, content))
+                        sprint(f'[{msg.date.hour}:{msg.date.minute}] (ID={msg.id}) {name}: {content}')
 
-                # Send photo
                 elif msg.startswith('!up '):
                     # Slice the message to get the path
                     path = msg[len('!up '):]
                     await self.send_photo(path=path, entity=entity)
 
-                # Send file (document)
                 elif msg.startswith('!uf '):
                     # Slice the message to get the path
                     path = msg[len('!uf '):]
                     await self.send_document(path=path, entity=entity)
 
-                # Delete messages
                 elif msg.startswith('!d '):
                     # Slice the message to get message ID
                     msg = msg[len('!d '):]
                     deleted_msg = await self.delete_messages(entity, msg)
-                    print('Deleted {}'.format(deleted_msg))
+                    print(f'Deleted {deleted_msg}')
 
-                # Download media
                 elif msg.startswith('!dm '):
                     # Slice the message to get message ID
                     await self.download_media_by_id(msg[len('!dm '):])
 
-                # Download profile photo
                 elif msg == '!dp':
                     print('Downloading profile picture to usermedia/...')
                     os.makedirs('usermedia', exist_ok=True)
@@ -301,7 +293,6 @@ class InteractiveTelegramClient(TelegramClient):
                     for name, val in attributes:
                         print("{:<{width}} : {}".format(name, val, width=pad))
 
-                # Send chat message (if any)
                 elif msg:
                     await self.send_message(entity, msg, link_preview=False)
 
@@ -340,7 +331,7 @@ class InteractiveTelegramClient(TelegramClient):
             file='usermedia/',
             progress_callback=self.download_progress_callback
         )
-        print('Media downloaded to {}!'.format(output))
+        print(f'Media downloaded to {output}!')
 
     @staticmethod
     def download_progress_callback(downloaded_bytes, total_bytes):
@@ -373,24 +364,15 @@ class InteractiveTelegramClient(TelegramClient):
         chat = await event.get_chat()
         if event.is_group:
             if event.out:
-                sprint('>> sent "{}" to chat {}'.format(
-                    event.text, get_display_name(chat)
-                ))
+                sprint(f'>> sent "{event.text}" to chat {get_display_name(chat)}')
             else:
-                sprint('<< {} @ {} sent "{}"'.format(
-                    get_display_name(await event.get_sender()),
-                    get_display_name(chat),
-                    event.text
-                ))
+                sprint(
+                    f'<< {get_display_name(await event.get_sender())} @ {get_display_name(chat)} sent "{event.text}"'
+                )
+        elif event.out:
+            sprint(f'>> "{event.text}" to user {get_display_name(chat)}')
         else:
-            if event.out:
-                sprint('>> "{}" to user {}'.format(
-                    event.text, get_display_name(chat)
-                ))
-            else:
-                sprint('<< {} sent "{}"'.format(
-                    get_display_name(chat), event.text
-                ))
+            sprint(f'<< {get_display_name(chat)} sent "{event.text}"')
 
 
 async def main():

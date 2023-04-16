@@ -65,16 +65,7 @@ class InlineResults(list):
         return time.time() < self._valid_until
 
     def _to_str(self, item_function):
-        return ('[{}, query_id={}, cache_time={}, users={}, gallery={}, '
-                'next_offset={}, switch_pm={}]'.format(
-            ', '.join(item_function(x) for x in self),
-            self.query_id,
-            self.cache_time,
-            self.users,
-            self.gallery,
-            self.next_offset,
-            self.switch_pm
-        ))
+        return f"[{', '.join(item_function(x) for x in self)}, query_id={self.query_id}, cache_time={self.cache_time}, users={self.users}, gallery={self.gallery}, next_offset={self.next_offset}, switch_pm={self.switch_pm}]"
 
     def __str__(self):
         return self._to_str(str)

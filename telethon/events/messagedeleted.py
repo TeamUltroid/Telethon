@@ -53,5 +53,5 @@ class MessageDeleted(EventBuilder):
             super().__init__(
                 chat_peer=peer, msg_id=(deleted_ids or [0])[0]
             )
-            self.deleted_id = None if not deleted_ids else deleted_ids[0]
+            self.deleted_id = deleted_ids[0] if deleted_ids else None
             self.deleted_ids = deleted_ids

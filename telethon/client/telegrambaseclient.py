@@ -334,21 +334,15 @@ class TelegramBaseClient(abc.ABC):
         # See https://github.com/LonamiWebs/Telethon/issues/1337 for details.
         if not callable(getattr(self.loop, 'sock_connect', None)):
             raise TypeError(
-                'Event loop of type {} lacks `sock_connect`, which is needed to use proxies.\n\n'
-                'Change the event loop in use to use proxies:\n'
-                '# https://github.com/LonamiWebs/Telethon/issues/1337\n'
-                'import asyncio\n'
-                'asyncio.set_event_loop(asyncio.SelectorEventLoop())'.format(
-                    self.loop.__class__.__name__
-                )
+                f'Event loop of type {self.loop.__class__.__name__} lacks `sock_connect`, which is needed to use proxies.\n\nChange the event loop in use to use proxies:\n# https://github.com/LonamiWebs/Telethon/issues/1337\nimport asyncio\nasyncio.set_event_loop(asyncio.SelectorEventLoop())'
             )
 
         if local_addr is not None:
-            if use_ipv6 is False and ':' in local_addr:
+            if not use_ipv6 and ':' in local_addr:
                 raise TypeError(
                     'A local IPv6 address must only be used with `use_ipv6=True`.'
                 )
-            elif use_ipv6 is True and ':' not in local_addr:
+            elif use_ipv6 and ':' not in local_addr:
                 raise TypeError(
                     '`use_ipv6=True` must only be used with a local IPv6 address.'
                 )
@@ -365,8 +359,11 @@ class TelegramBaseClient(abc.ABC):
 
         assert isinstance(connection, type)
         self._connection = connection
-        init_proxy = None if not issubclass(connection, TcpMTProxy) else \
+        init_proxy = (
             types.InputClientProxy(*connection.address_info(proxy))
+            if issubclass(connection, TcpMTProxy)
+            else None
+        )
 
         # Used on connection. Capture the variables in a lambda since
         # exporting clients need to create this InvokeWithLayerRequest.
@@ -570,8 +567,7 @@ class TelegramBaseClient(abc.ABC):
 
             self._message_box.load(ss, cs)
             for state in cs:
-                entity = self.session.get_input_entity(state.channel_id)
-                if entity:
+                if entity := self.session.get_input_entity(state.channel_id):
                     self._mb_entity_cache.put(Entity(EntityType.CHANNEL, entity.channel_id, entity.access_hash))
 
         self._init_request.query = functions.help.GetConfigRequest()
@@ -631,16 +627,15 @@ class TelegramBaseClient(abc.ABC):
             # disconnection. Shield the task to prevent disconnect itself
             # from being cancelled. See issue #3942 for more details.
             return asyncio.shield(self.loop.create_task(self._disconnect_coro()))
-        else:
-            try:
-                self.loop.run_until_complete(self._disconnect_coro())
-            except RuntimeError:
-                # Python 3.5.x complains when called from
-                # `__aexit__` and there were pending updates with:
-                #   "Event loop stopped before Future completed."
-                #
-                # However, it doesn't really make a lot of sense.
-                pass
+        try:
+            self.loop.run_until_complete(self._disconnect_coro())
+        except RuntimeError:
+            # Python 3.5.x complains when called from
+            # `__aexit__` and there were pending updates with:
+            #   "Event loop stopped before Future completed."
+            #
+            # However, it doesn't really make a lot of sense.
+            pass
 
     def set_proxy(self: 'TelegramClient', proxy: typing.Union[tuple, dict]):
         """
@@ -652,19 +647,16 @@ class TelegramBaseClient(abc.ABC):
             - on a call `await client.connect()` (after complete disconnect)
             - on auto-reconnect attempt (e.g, after previous connection was lost)
         """
-        init_proxy = None if not issubclass(self._connection, TcpMTProxy) else \
+        init_proxy = (
             types.InputClientProxy(*self._connection.address_info(proxy))
+            if issubclass(self._connection, TcpMTProxy)
+            else None
+        )
 
         self._init_request.proxy = init_proxy
         self._proxy = proxy
 
-        # While `await client.connect()` passes new proxy on each new call,
-        # auto-reconnect attempts use already set up `_connection` inside
-        # the `_sender`, so the only way to change proxy between those
-        # is to directly inject parameters.
-
-        connection = getattr(self._sender, "_connection", None)
-        if connection:
+        if connection := getattr(self._sender, "_connection", None):
             if isinstance(connection, TcpMTProxy):
                 connection._ip = proxy[0]
                 connection._port = proxy[1]
@@ -878,27 +870,6 @@ class TelegramBaseClient(abc.ABC):
         """Similar to ._borrow_exported_client, but for CDNs"""
         # TODO Implement
         raise NotImplementedError
-        session = self._exported_sessions.get(cdn_redirect.dc_id)
-        if not session:
-            dc = await self._get_dc(cdn_redirect.dc_id, cdn=True)
-            session = self.session.clone()
-            session.set_dc(dc.id, dc.ip_address, dc.port)
-            self._exported_sessions[cdn_redirect.dc_id] = session
-
-        self._log[__name__].info('Creating new CDN client')
-        client = TelegramBaseClient(
-            session, self.api_id, self.api_hash,
-            proxy=self._sender.connection.conn.proxy,
-            timeout=self._sender.connection.get_timeout()
-        )
-
-        # This will make use of the new RSA keys for this specific CDN.
-        #
-        # We won't be calling GetConfigRequest because it's only called
-        # when needed by ._get_dc, and also it's static so it's likely
-        # set already. Avoid invoking non-CDN methods by not syncing updates.
-        client.connect(_sync_updates=False)
-        return client
 
     # endregion
 

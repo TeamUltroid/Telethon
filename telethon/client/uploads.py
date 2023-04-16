@@ -114,6 +114,7 @@ class UploadMethods:
             silent: bool = None,
             background: bool = None,
             supports_streaming: bool = False,
+            spoiler: bool = False,
             schedule: 'hints.DateLike' = None,
             comment_to: 'typing.Union[int, types.Message]' = None,
             ttl: int = None,
@@ -368,7 +369,6 @@ class UploadMethods:
                 if progress_callback
                 else None
             )
-
             captions = caption if utils.is_list_like(caption) else [caption]
             result = []
             while file:
@@ -381,6 +381,7 @@ class UploadMethods:
                 )
                 file = file[10:]
                 captions = captions[10:]
+                sent_count += 10
                 sent_count += 10
 
             return result
@@ -399,6 +400,7 @@ class UploadMethods:
             voice_note=voice_note, video_note=video_note,
             supports_streaming=supports_streaming, ttl=ttl,
             nosound_video=nosound_video,
+            spoiler=spoiler
         )
 
         # e.g. invalid cast from :tl:`MessageMediaWebPage`
@@ -418,7 +420,8 @@ class UploadMethods:
                           progress_callback=None, reply_to=None,
                           parse_mode=(), silent=None, schedule=None,
                           supports_streaming=None, clear_draft=None,
-                          force_document=False, background=None, ttl=None):
+                          force_document=False, background=None, ttl=None,
+                          spoiler=False):
         """Specialized version of .send_file for albums"""
         # We don't care if the user wants to avoid cache, we will use it
         # anyway. Why? The cached version will be exactly the same thing
@@ -472,7 +475,7 @@ class UploadMethods:
                 ))
 
                 fm = utils.get_input_media(
-                   r.document, supports_streaming=supports_streaming)
+                   r.document, supports_streaming=supports_streaming, spoiler=spoiler)
 
             caption, msg_entities = captions.pop() if captions else ('', None)
             media.append(types.InputSingleMedia(
@@ -556,6 +559,13 @@ class UploadMethods:
             progress_callback (`callable`, optional):
                 A callback function accepting two parameters:
                 ``(sent bytes, total)``.
+
+                When sending an album, the callback will receive a number
+                between 0 and the amount of files as the "sent" parameter,
+                and the amount of files as the "total". Note that the first
+                parameter will be a floating point number to indicate progress
+                within a file (e.g. ``2.5`` means it has sent 50% of the third
+                file, because it's between 2 and 3).
 
                 When sending an album, the callback will receive a number
                 between 0 and the amount of files as the "sent" parameter,
@@ -684,7 +694,7 @@ class UploadMethods:
             progress_callback=None, attributes=None, thumb=None,
             allow_cache=True, voice_note=False, video_note=False,
             supports_streaming=False, mime_type=None, as_image=None,
-            ttl=None, nosound_video=None):
+            ttl=None, nosound_video=None, spoiler=False):
         if not file:
             return None, None, None
 
@@ -714,7 +724,7 @@ class UploadMethods:
                     voice_note=voice_note,
                     video_note=video_note,
                     supports_streaming=supports_streaming,
-                    ttl=ttl
+                    ttl=ttl, spoiler=spoiler
                 ), as_image)
             except TypeError:
                 # Can't turn whatever was given into media
@@ -781,5 +791,3 @@ class UploadMethods:
                 nosound_video=nosound_video
             )
         return file_handle, media, as_image
-
-    # endregion

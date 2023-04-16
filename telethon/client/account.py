@@ -101,7 +101,7 @@ class _TakeoutClient:
         return value
 
     def __setattr__(self, name, value):
-        if name.startswith('_{}__'.format(type(self).__name__.lstrip('_'))):
+        if name.startswith(f"_{type(self).__name__.lstrip('_')}__"):
             # This is our own name-mangled attribute, keep calm.
             return super().__setattr__(name, value)
         return setattr(self.__client, name, value)
