@@ -118,10 +118,7 @@ class CallbackQuery(EventBuilder):
             elif event.query.data != self.match:
                 return
 
-        if self.func:
-            # Return the result of func directly as it may need to be awaited
-            return self.func(event)
-        return True
+        return self.func(event) if self.func else True
 
     class Event(EventCommon, SenderGetter):
         """
