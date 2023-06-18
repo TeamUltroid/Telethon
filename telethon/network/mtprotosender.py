@@ -230,8 +230,8 @@ class MTProtoSender:
         for attempt in retry_range(self._retries):
             if not connected:
                 connected = await self._try_connect(attempt)
-                if not connected:
-                    continue  # skip auth key generation until we're connected
+            if not connected:
+                continue  # skip auth key generation until we're connected
 
             if not self.auth_key:
                 try:
@@ -255,9 +255,9 @@ class MTProtoSender:
             break  # all steps done, break retry loop
         else:
             if not connected:
-                raise ConnectionError('Connection to Telegram failed {} time(s)'.format(self._retries))
+                raise ConnectionError(f'Connection to Telegram failed {self._retries} time(s)')
 
-            e = ConnectionError('auth_key generation failed {} time(s)'.format(self._retries))
+            e = ConnectionError(f'auth_key generation failed {self._retries} time(s)')
             await self._disconnect(error=e)
             raise e
 
@@ -475,14 +475,13 @@ class MTProtoSender:
             # so even if the network fails they won't be lost. If they were
             # never re-enqueued, the future waiting for a response "locks".
             for state in batch:
-                if not isinstance(state, list):
-                    if isinstance(state.request, TLRequest):
-                        self._pending_state[state.msg_id] = state
-                else:
+                if isinstance(state, list):
                     for s in state:
                         if isinstance(s.request, TLRequest):
                             self._pending_state[s.msg_id] = s
 
+                elif isinstance(state.request, TLRequest):
+                    self._pending_state[state.msg_id] = state
             try:
                 await self._connection.send(data)
             except IOError as e:
@@ -574,23 +573,17 @@ class MTProtoSender:
 
         This method should be used when the response isn't specific.
         """
-        state = self._pending_state.pop(msg_id, None)
-        if state:
+        if state := self._pending_state.pop(msg_id, None):
             return [state]
 
-        to_pop = []
-        for state in self._pending_state.values():
-            if state.container_id == msg_id:
-                to_pop.append(state.msg_id)
-
-        if to_pop:
+        if to_pop := [
+            state.msg_id
+            for state in self._pending_state.values()
+            if state.container_id == msg_id
+        ]:
             return [self._pending_state.pop(x) for x in to_pop]
 
-        for ack in self._last_acks:
-            if ack.msg_id == msg_id:
-                return [ack]
-
-        return []
+        return next(([ack] for ack in self._last_acks if ack.msg_id == msg_id), [])
 
     async def _handle_rpc_result(self, message):
         """
@@ -725,8 +718,7 @@ class MTProtoSender:
         if self._ping == pong.ping_id:
             self._ping = None
 
-        state = self._pending_state.pop(pong.msg_id, None)
-        if state:
+        if state := self._pending_state.pop(pong.msg_id, None):
             state.future.set_result(pong)
 
     async def _handle_bad_server_salt(self, message):
@@ -851,8 +843,7 @@ class MTProtoSender:
         # TODO save these salts and automatically adjust to the
         # correct one whenever the salt in use expires.
         self._log.debug('Handling future salts for message %d', message.msg_id)
-        state = self._pending_state.pop(message.msg_id, None)
-        if state:
+        if state := self._pending_state.pop(message.msg_id, None):
             state.future.set_result(message.obj)
 
     async def _handle_state_forgotten(self, message):
