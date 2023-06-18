@@ -37,17 +37,15 @@ class _MessagesIter(RequestIter):
         # and simply stopping once we hit a message with ID <= min_id.
         if self.reverse:
             offset_id = max(offset_id, min_id)
-            if offset_id and max_id:
-                if max_id - offset_id <= 1:
-                    raise StopAsyncIteration
+            if offset_id and max_id and max_id - offset_id <= 1:
+                raise StopAsyncIteration
 
             if not max_id:
                 max_id = float('inf')
         else:
             offset_id = max(offset_id, max_id)
-            if offset_id and min_id:
-                if offset_id - min_id <= 1:
-                    raise StopAsyncIteration
+            if offset_id and min_id and offset_id - min_id <= 1:
+                raise StopAsyncIteration
 
         if self.reverse:
             if offset_id:
@@ -137,7 +135,7 @@ class _MessagesIter(RequestIter):
             # Even better, using `filter` and `from_id` seems to always
             # trigger `RPC_CALL_FAIL` which is "internal issues"...
             if not isinstance(filter, types.InputMessagesFilterEmpty) \
-                    and offset_date and not search and not offset_id:
+                        and offset_date and not search and not offset_id:
                 async for m in self.client.iter_messages(
                         self.entity, 1, offset_date=offset_date):
                     self.request.offset_id = m.id + 1
@@ -271,11 +269,7 @@ class _MessagesIter(RequestIter):
             self.request.offset_date = last_message.date
 
         if isinstance(self.request, functions.messages.SearchGlobalRequest):
-            if last_message.input_chat:
-                self.request.offset_peer = last_message.input_chat
-            else:
-                self.request.offset_peer = types.InputPeerEmpty()
-
+            self.request.offset_peer = last_message.input_chat or types.InputPeerEmpty()
             self.request.offset_rate = getattr(response, 'next_rate', 0)
 
 
@@ -636,6 +630,7 @@ class MessageMethods:
             schedule: 'hints.DateLike' = None,
             comment_to: 'typing.Union[int, types.Message]' = None,
             nosound_video: bool = None,
+            spoiler: bool = False
     ) -> 'types.Message':
         """
         Sends a message to the specified user, chat or channel.
@@ -758,6 +753,15 @@ class MessageMethods:
                 on non-video files. This is set to ``True`` for albums, as gifs
                 cannot be sent in albums.
 
+            nosound_video (`bool`, optional):
+                Only applicable when sending a video file without an audio
+                track. If set to ``True``, the video will be displayed in
+                Telegram as a video. If set to ``False``, Telegram will attempt
+                to display the video as an animated gif. (It may still display
+                as a video due to other factors.) The value is ignored if set
+                on non-video files. This is set to ``True`` for albums, as gifs
+                cannot be sent in albums.
+
         Returns
             The sent `custom.Message <telethon.tl.custom.message.Message>`.
 
@@ -827,6 +831,7 @@ class MessageMethods:
                 formatting_entities=formatting_entities,
                 comment_to=comment_to, background=background,
                 nosound_video=nosound_video,
+                spoiler=spoiler
             )
 
         entity = await self.get_input_entity(entity)
@@ -921,7 +926,10 @@ class MessageMethods:
             with_my_score: bool = None,
             silent: bool = None,
             as_album: bool = None,
-            schedule: 'hints.DateLike' = None
+            drop_author: bool = None,
+            drop_media_captions: bool = None,
+            schedule: 'hints.DateLike' = None,
+            **kwargs
     ) -> 'typing.Sequence[types.Message]':
         """
         Forwards the given messages to the specified entity.
@@ -1033,7 +1041,10 @@ class MessageMethods:
                 silent=silent,
                 background=background,
                 with_my_score=with_my_score,
-                schedule_date=schedule
+                schedule_date=schedule,
+                drop_author=drop_author,
+                drop_media_captions=drop_media_captions,
+                **kwargs
             )
             result = await self(req)
             sent.extend(self._get_response_message(req, result, entity))
@@ -1069,6 +1080,7 @@ class MessageMethods:
                 from it, so the next parameter will be assumed to be the
                 message text.
 
+                You may also pass a :tl:`InputBotInlineMessageID` or :tl:`InputBotInlineMessageID64`,
                 You may also pass a :tl:`InputBotInlineMessageID` or :tl:`InputBotInlineMessageID64`,
                 which is the only way to edit messages that were sent
                 after the user selects an inline query result.
@@ -1141,6 +1153,7 @@ class MessageMethods:
 
         Returns
             The edited `Message <telethon.tl.custom.message.Message>`,
+            unless `entity` was a :tl:`InputBotInlineMessageID` or :tl:`InputBotInlineMessageID64` in which
             unless `entity` was a :tl:`InputBotInlineMessageID` or :tl:`InputBotInlineMessageID64` in which
             case this method returns a boolean.
 

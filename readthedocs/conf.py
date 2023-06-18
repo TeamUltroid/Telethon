@@ -74,8 +74,9 @@ author = 'Lonami'
 #
 # The short X.Y version.
 with open(os.path.join(root, 'telethon', 'version.py'), 'r') as f:
-    version = re.search(r"^__version__\s+=\s+'(.*)'$",
-                        f.read(), flags=re.MULTILINE).group(1)
+    version = re.search(
+        r"^__version__\s+=\s+'(.*)'$", f.read(), flags=re.MULTILINE
+    )[1]
 
 # The full version, including alpha/beta/rc tags.
 release = version

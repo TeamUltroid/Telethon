@@ -306,3 +306,7 @@ class Button:
         documentation for more information on using games.
         """
         return types.KeyboardButtonGame(text)
+
+    @staticmethod
+    def mention(text, user_id):
+        return types.InputKeyboardButtonUserProfile(text, user_id)

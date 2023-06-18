@@ -46,7 +46,7 @@ def _from_line(line, is_function, method_info, layer):
     )
     if match is None:
         # Probably "vector#1cb5c415 {t:Type} # [ t ] = Vector t;"
-        raise ValueError('Cannot parse TLObject {}'.format(line))
+        raise ValueError(f'Cannot parse TLObject {line}')
 
     args_match = re.findall(
         r'({)?'
@@ -57,9 +57,8 @@ def _from_line(line, is_function, method_info, layer):
         line
     )
 
-    name = match.group(1)
-    method_info = method_info.get(name)
-    if method_info:
+    name = match[1]
+    if method_info := method_info.get(name):
         usability = method_info.usability
         friendly = method_info.friendly
     else:
@@ -68,14 +67,16 @@ def _from_line(line, is_function, method_info, layer):
 
     return TLObject(
         fullname=name,
-        object_id=match.group(2),
-        result=match.group(3),
+        object_id=match[2],
+        result=match[3],
         is_function=is_function,
         layer=layer,
         usability=usability,
         friendly=friendly,
-        args=[TLArg(name, arg_type, brace != '')
-              for brace, name, arg_type in args_match]
+        args=[
+            TLArg(name, arg_type, brace != '')
+            for brace, name, arg_type in args_match
+        ],
     )
 
 
@@ -101,9 +102,8 @@ def parse_tl(file_path, layer, methods=None, ignored_ids=CORE_TYPES):
             if not line:
                 continue
 
-            match = re.match(r'---(\w+)---', line)
-            if match:
-                following_types = match.group(1)
+            if match := re.match(r'---(\w+)---', line):
+                following_types = match[1]
                 is_function = following_types == 'functions'
                 continue
 
@@ -143,6 +143,5 @@ def find_layer(file_path):
     layer_regex = re.compile(r'^//\s*LAYER\s*(\d+)$')
     with file_path.open('r') as file:
         for line in file:
-            match = layer_regex.match(line)
-            if match:
-                return int(match.group(1))
+            if match := layer_regex.match(line):
+                return int(match[1])

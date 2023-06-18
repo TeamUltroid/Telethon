@@ -425,7 +425,7 @@ def get_input_media(
         media, *,
         is_photo=False, attributes=None, force_document=False,
         voice_note=False, video_note=False, supports_streaming=False,
-        ttl=None
+        ttl=None, spoiler=False
 ):
     """
     Similar to :meth:`get_input_peer`, but for media.
@@ -438,39 +438,43 @@ def get_input_media(
         if media.SUBCLASS_OF_ID == 0xfaf846f4:  # crc32(b'InputMedia')
             return media
         elif media.SUBCLASS_OF_ID == 0x846363e0:  # crc32(b'InputPhoto')
-            return types.InputMediaPhoto(media, ttl_seconds=ttl)
+            return types.InputMediaPhoto(media, ttl_seconds=ttl, spoiler=spoiler)
         elif media.SUBCLASS_OF_ID == 0xf33fdb68:  # crc32(b'InputDocument')
-            return types.InputMediaDocument(media, ttl_seconds=ttl)
+            return types.InputMediaDocument(media, ttl_seconds=ttl, spoiler=spoiler)
     except AttributeError:
         _raise_cast_fail(media, 'InputMedia')
 
     if isinstance(media, types.MessageMediaPhoto):
         return types.InputMediaPhoto(
             id=get_input_photo(media.photo),
-            ttl_seconds=ttl or media.ttl_seconds
+            ttl_seconds=ttl or media.ttl_seconds,
+            spoiler=spoiler
         )
 
     if isinstance(media, (types.Photo, types.photos.Photo, types.PhotoEmpty)):
         return types.InputMediaPhoto(
             id=get_input_photo(media),
-            ttl_seconds=ttl
+            ttl_seconds=ttl,
+            spoiler=spoiler
         )
 
     if isinstance(media, types.MessageMediaDocument):
         return types.InputMediaDocument(
             id=get_input_document(media.document),
-            ttl_seconds=ttl or media.ttl_seconds
+            ttl_seconds=ttl or media.ttl_seconds,
+            spoiler=spoiler
         )
 
     if isinstance(media, (types.Document, types.DocumentEmpty)):
         return types.InputMediaDocument(
             id=get_input_document(media),
-            ttl_seconds=ttl
+            ttl_seconds=ttl,
+            spoiler=spoiler
         )
 
     if isinstance(media, (types.InputFile, types.InputFileBig)):
         if is_photo:
-            return types.InputMediaUploadedPhoto(file=media, ttl_seconds=ttl)
+            return types.InputMediaUploadedPhoto(file=media, ttl_seconds=ttl, spoiler=spoiler)
         attrs, mime = get_attributes(
             media,
             attributes=attributes,
@@ -481,12 +485,12 @@ def get_input_media(
         )
         return types.InputMediaUploadedDocument(
             file=media, mime_type=mime, attributes=attrs, force_file=force_document,
-            ttl_seconds=ttl)
+            ttl_seconds=ttl, spoiler=spoiler)
 
     if isinstance(media, types.MessageMediaGame):
         return types.InputMediaGame(id=types.InputGameID(
             id=media.game.id,
-            access_hash=media.game.access_hash
+            access_hash=media.game.access_hash,
         ))
 
     if isinstance(media, types.MessageMediaContact):
@@ -528,7 +532,6 @@ def get_input_media(
                 # A quiz has correct answers, which we don't know until answered.
                 # If the quiz hasn't been answered we can't reconstruct it properly.
                 raise TypeError('Cannot cast unanswered quiz to any kind of InputMedia.')
-
             correct_answers = [r.option for r in media.results.results if r.correct]
         else:
             correct_answers = None
@@ -671,8 +674,7 @@ def get_attributes(file, *, attributes=None, mime_type=None,
     if mime_type is None:
         mime_type = mimetypes.guess_type(name)[0]
 
-    attr_dict = {types.DocumentAttributeFilename:
-        types.DocumentAttributeFilename(os.path.basename(name))}
+    attr_dict = {types.DocumentAttributeFilename: types.DocumentAttributeFilename(os.path.basename(name))}
 
     if is_audio(file):
         if m := _get_metadata(file):

@@ -32,8 +32,9 @@ class MethodInfo:
                 'both': Usability.BOTH,
             }[usability.lower()]
         except KeyError:
-            raise ValueError('Usability must be either user, bot, both or '
-                             'unknown, not {}'.format(usability)) from None
+            raise ValueError(
+                f'Usability must be either user, bot, both or unknown, not {usability}'
+            ) from None
 
 
 def parse_methods(csv_file, friendly_csv_file, errors_dict):
@@ -56,12 +57,14 @@ def parse_methods(csv_file, friendly_csv_file, errors_dict):
             try:
                 errors = [errors_dict[x] for x in errors.split()]
             except KeyError:
-                raise ValueError('Method {} references unknown errors {}'
-                                 .format(method, errors)) from None
+                raise ValueError(
+                    f'Method {method} references unknown errors {errors}'
+                ) from None
 
             friendly = raw_to_friendly.pop(method, None)
             yield MethodInfo(method, usability, errors, friendly)
 
     if raw_to_friendly:
-        warnings.warn('note: unknown raw methods in friendly mapping: {}'
-                      .format(', '.join(raw_to_friendly)))
+        warnings.warn(
+            f"note: unknown raw methods in friendly mapping: {', '.join(raw_to_friendly)}"
+        )
