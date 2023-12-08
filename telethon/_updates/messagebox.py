@@ -109,8 +109,7 @@ class PtsInfo:
                 entry = getattr(update, 'channel_id', None) or ENTRY_ACCOUNT
             return cls(pts=pts, pts_count=pts_count, entry=entry)
 
-        qts = getattr(update, 'qts', None)
-        if qts:
+        if qts := getattr(update, 'qts', None):
             pts_count = 1 if isinstance(update, tl.UpdateNewEncryptedMessage) else 0
             return cls(pts=qts, pts_count=pts_count, entry=ENTRY_SECRET)
 

@@ -56,8 +56,12 @@ def parse(message, delimiters=None, url_re=None):
     # Build a regex to efficiently test all delimiters at once.
     # Note that the largest delimiter should go first, we don't
     # want ``` to be interpreted as a single back-tick in a code block.
-    delim_re = re.compile('|'.join('({})'.format(re.escape(k))
-                                   for k in sorted(delimiters, key=len, reverse=True)))
+    delim_re = re.compile(
+        '|'.join(
+            f'({re.escape(k)})'
+            for k in sorted(delimiters, key=len, reverse=True)
+        )
+    )
 
     # Cannot use a for loop because we need to skip some indices
     i = 0
@@ -67,10 +71,7 @@ def parse(message, delimiters=None, url_re=None):
     # The offset will just be half the index we're at.
     message = add_surrogate(message)
     while i < len(message):
-        m = delim_re.match(message, pos=i)
-
-        # Did we find some delimiter here at `i`?
-        if m:
+        if m := delim_re.match(message, pos=i):
             delim = next(filter(None, m.groups()))
 
             # +1 to avoid matching right after (e.g. "****")
@@ -91,11 +92,7 @@ def parse(message, delimiters=None, url_re=None):
                     # If the end is after our start, it is affected
                     if ent.offset + ent.length > i:
                         # If the old start is also before ours, it is fully enclosed
-                        if ent.offset <= i:
-                            ent.length -= len(delim) * 2
-                        else:
-                            ent.length -= len(delim)
-
+                        ent.length -= len(delim) * 2 if ent.offset <= i else len(delim)
                 # Append the found entity
                 ent = delimiters[delim]
                 if ent == MessageEntityPre:
@@ -110,8 +107,7 @@ def parse(message, delimiters=None, url_re=None):
                 continue
 
         elif url_re:
-            m = url_re.match(message, pos=i)
-            if m:
+            if m := url_re.match(message, pos=i):
                 # Replace the whole match with only the inline URL text.
                 message = ''.join((
                     message[:m.start()],
@@ -167,20 +163,16 @@ def unparse(text, entities, delimiters=None, url_fmt=None):
     for i, entity in enumerate(entities):
         s = entity.offset
         e = entity.offset + entity.length
-        delimiter = delimiters.get(type(entity), None)
-        if delimiter:
-            insert_at.append((s, i, delimiter))
-            insert_at.append((e, -i, delimiter))
+        if delimiter := delimiters.get(type(entity), None):
+            insert_at.extend(((s, i, delimiter), (e, -i, delimiter)))
         else:
             url = None
             if isinstance(entity, MessageEntityTextUrl):
                 url = entity.url
             elif isinstance(entity, MessageEntityMentionName):
-                url = 'tg://user?id={}'.format(entity.user_id)
+                url = f'tg://user?id={entity.user_id}'
             if url:
-                insert_at.append((s, i, '['))
-                insert_at.append((e, -i, ']({})'.format(url)))
-
+                insert_at.extend(((s, i, '['), (e, -i, f']({url})')))
     insert_at.sort(key=lambda t: (t[0], t[1]))
     while insert_at:
         at, _, what = insert_at.pop()
