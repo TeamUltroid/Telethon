@@ -113,12 +113,11 @@ class MessageRead(EventBuilder):
             """
             if self._messages is None:
                 chat = await self.get_input_chat()
-                if not chat:
-                    self._messages = []
-                else:
-                    self._messages = await self._client.get_messages(
-                        chat, ids=self._message_ids)
-
+                self._messages = (
+                    await self._client.get_messages(chat, ids=self._message_ids)
+                    if chat
+                    else []
+                )
             return self._messages
 
         def is_read(self, message):

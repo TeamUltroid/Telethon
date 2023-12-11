@@ -7,7 +7,7 @@ def test_all_methods_present(docs_dir):
     with (docs_dir / 'quick-references/client-reference.rst').open(encoding='utf-8') as fd:
         present_methods = set(map(str.lstrip, re.findall(r'^ {4}\w+$', fd.read(), re.MULTILINE)))
 
-    assert len(present_methods) > 0
+    assert present_methods
     for name in dir(TelegramClient):
         attr = getattr(TelegramClient, name)
         if callable(attr) and not name.startswith('_'):

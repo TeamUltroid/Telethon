@@ -31,7 +31,9 @@ def _get_class_name(error_code):
         error_code = re.sub(r'2', 'TWO_', error_code, count=1)
 
     if re.match(r'\d+', error_code):
-        raise RuntimeError('error code starting with a digit cannot have valid Python name: {}'.format(error_code))
+        raise RuntimeError(
+            f'error code starting with a digit cannot have valid Python name: {error_code}'
+        )
 
     return snake_to_camel_case(
         error_code.replace('FIRSTNAME', 'FIRST_NAME')\
@@ -54,7 +56,7 @@ class Error:
         if self.has_captures:
             self.name = _get_class_name(name.replace('_X', '_'))
             self.pattern = name.replace('_X', r'_(\d+)')
-            self.capture_name = re.search(r'{(\w+)}', description).group(1)
+            self.capture_name = re.search(r'{(\w+)}', description)[1]
         else:
             self.name = _get_class_name(name)
             self.pattern = name
@@ -73,13 +75,13 @@ def parse_errors(csv_file):
             try:
                 name, codes, description = tup
             except ValueError:
-                raise ValueError('Columns count mismatch, unquoted comma in '
-                                 'desc? (line {})'.format(line)) from None
+                raise ValueError(
+                    f'Columns count mismatch, unquoted comma in desc? (line {line})'
+                ) from None
 
             try:
                 codes = [int(x) for x in codes.split()] or [400]
             except ValueError:
-                raise ValueError('Not all codes are integers '
-                                 '(line {})'.format(line)) from None
+                raise ValueError(f'Not all codes are integers (line {line})') from None
 
             yield Error([int(x) for x in codes], name, description)

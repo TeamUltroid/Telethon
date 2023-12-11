@@ -8,9 +8,7 @@ from telethon.errors import SessionPasswordNeededError
 
 
 def get_env(name, message):
-    if name in os.environ:
-        return os.environ[name]
-    return input(message)
+    return os.environ[name] if name in os.environ else input(message)
 
 
 BASE_TEMPLATE = '''
@@ -63,19 +61,12 @@ app.secret_key = 'CHANGE THIS TO SOMETHING SECRET'
 # Helper method to format messages nicely
 async def format_message(message):
     if message.photo:
-        content = '<img src="data:image/png;base64,{}" alt="{}" />'.format(
-            base64.b64encode(await message.download_media(bytes)).decode(),
-            message.raw_text
-        )
+        content = f'<img src="data:image/png;base64,{base64.b64encode(await message.download_media(bytes)).decode()}" alt="{message.raw_text}" />'
     else:
         # client.parse_mode = 'html', so bold etc. will work!
         content = (message.text or '(action message)').replace('\n', '<br>')
 
-    return '<p><strong>{}</strong>: {}<sub>{}</sub></p>'.format(
-        utils.get_display_name(message.sender),
-        content,
-        message.date
-    )
+    return f'<p><strong>{utils.get_display_name(message.sender)}</strong>: {content}<sub>{message.date}</sub></p>'
 
 
 # Connect the client before we start serving with Quart
@@ -116,7 +107,7 @@ async def root():
     if await client.is_user_authorized():
         # They are logged in, show them some messages from their first dialog
         dialog = (await client.get_dialogs())[0]
-        result = '<h1>{}</h1>'.format(dialog.title)
+        result = f'<h1>{dialog.title}</h1>'
         async for m in client.iter_messages(dialog, 10):
             result += await(format_message(m))
 

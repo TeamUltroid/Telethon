@@ -42,8 +42,7 @@ class AlbumHack:
         client.loop.create_task(self.deliver_event())
 
     def extend(self, messages):
-        client = self._client()
-        if client:  # weakref may be dead
+        if client := self._client():
             self._event.messages.extend(messages)
             self._due = client.loop.time() + _HACK_DELAY
 
@@ -217,9 +216,6 @@ class Album(EventBuilder):
             # Each individual message in an album all reply to the same message
             return self.messages[0].forward
 
-        # endregion Public Properties
-
-        # region Public Methods
 
         async def get_reply_message(self):
             """

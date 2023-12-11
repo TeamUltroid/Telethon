@@ -124,10 +124,10 @@ class TLArg:
             self.type = arg_type.lstrip('!')
 
             if flag_match := re.match(r'(\w+).(\d+)\?([\w<>.]+)', self.type):
-                self.flag = flag_match.group(1)
-                self.flag_index = int(flag_match.group(2))
+                self.flag = flag_match[1]
+                self.flag_index = int(flag_match[2])
                 # Update the type to match the exact type, not the "flagged" one
-                self.type = flag_match.group(3)
+                self.type = flag_match[3]
 
             if vector_match := re.match(r'[Vv]ector<([\w\d.]+)>', self.type):
                 self.is_vector = True
@@ -138,7 +138,7 @@ class TLArg:
                 self.use_vector_id = self.type[0] == 'V'
 
                 # Update the type to match the one inside the vector
-                self.type = vector_match.group(1)
+                self.type = vector_match[1]
 
             # See use_vector_id. An example of such case is ipPort in
             # help.configSpecial

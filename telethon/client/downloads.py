@@ -257,14 +257,17 @@ class DownloadMethods:
             if not hasattr(entity, 'photo'):
                 # Special case: may be a ChatFull with photo:Photo
                 # This is different from a normal UserProfilePhoto and Chat
-                if not hasattr(entity, 'chat_photo'):
-                    return None
-
-                return await self._download_photo(
-                    entity.chat_photo, file, date=None,
-                    thumb=thumb, progress_callback=None
+                return (
+                    await self._download_photo(
+                        entity.chat_photo,
+                        file,
+                        date=None,
+                        thumb=thumb,
+                        progress_callback=None,
+                    )
+                    if hasattr(entity, 'chat_photo')
+                    else None
                 )
-
             possible_names.extend(
                 getattr(entity, attr, None)
                 for attr in ('username', 'first_name', 'title')
@@ -404,14 +407,15 @@ class DownloadMethods:
         if isinstance(media, str):
             media = utils.resolve_bot_file_id(media)
 
-        if isinstance(media, types.MessageService):
-            if isinstance(message.action,
-                          types.MessageActionChatEditPhoto):
-                media = media.photo
+        if isinstance(media, types.MessageService) and isinstance(
+            message.action, types.MessageActionChatEditPhoto
+        ):
+            media = media.photo
 
-        if isinstance(media, types.MessageMediaWebPage):
-            if isinstance(media.webpage, types.WebPage):
-                media = media.webpage.document or media.webpage.photo
+        if isinstance(media, types.MessageMediaWebPage) and isinstance(
+            media.webpage, types.WebPage
+        ):
+            media = media.webpage.document or media.webpage.photo
 
         if isinstance(media, (types.MessageMediaPhoto, types.Photo)):
             return await self._download_photo(

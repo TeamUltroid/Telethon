@@ -75,7 +75,9 @@ class InlineBuilder:
             self, title, description=None,
             *, url=None, thumb=None, content=None,
             id=None, text=None, parse_mode=(), link_preview=True,
-            geo=None, period=60, contact=None, game=False, buttons=None
+            geo=None, period=60, contact=None, game=False, buttons=None,
+            include_media=False,
+            type="article"
     ):
         """
         Creates new inline result of article type.
@@ -128,9 +130,10 @@ class InlineBuilder:
         # voice, document, location, venue, contact, game
         result = types.InputBotInlineResult(
             id=id or '',
-            type='article',
+            type=type,
             send_message=await self._message(
                 text=text, parse_mode=parse_mode, link_preview=link_preview,
+                media=include_media,
                 geo=geo, period=period,
                 contact=contact,
                 game=game,
@@ -299,8 +302,8 @@ class InlineBuilder:
                             type = ty
                             break
 
-            if type is None:
-                type = 'file'
+        if type is None:
+            type = 'file'
 
         try:
             fh = utils.get_input_document(file)
@@ -384,7 +387,7 @@ class InlineBuilder:
     ):
         # Empty strings are valid but false-y; if they're empty use dummy '\0'
         args = ('\0' if text == '' else text, geo, contact, game)
-        if sum(1 for x in args if x is not None and x is not False) != 1:
+        if sum(x is not None and x is not False for x in args) != 1:
             raise ValueError(
                 'Must set exactly one of text, geo, contact or game (set {})'
                 .format(', '.join(x[0] for x in zip(
