@@ -96,9 +96,8 @@ class MessageParseMethods:
                 # entities), strip them here rather than fixing the built-in parsers.
                 del msg_entities[i]
             elif isinstance(e, types.MessageEntityTextUrl):
-                m = re.match(r'^@|\+|tg://user\?id=(\d+)', e.url)
-                if m:
-                    user = int(m.group(1)) if m.group(1) else e.url
+                if m := re.match(r'^@|\+|tg://user\?id=(\d+)', e.url):
+                    user = int(m[1]) if m[1] else e.url
                     is_mention = await self._replace_with_mention(msg_entities, i, user)
                     if not is_mention:
                         del msg_entities[i]

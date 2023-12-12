@@ -391,8 +391,9 @@ def _write_read_result(tlobject, builder):
     builder.writeln('@staticmethod')
     builder.writeln('def read_result(reader):')
     builder.writeln('reader.read_int()  # Vector ID')
-    builder.writeln('return [reader.read_{}() '
-                    'for _ in range(reader.read_int())]', m.group(1))
+    builder.writeln(
+        'return [reader.read_{}() ' 'for _ in range(reader.read_int())]', m[1]
+    )
 
 
 def _write_arg_to_bytes(builder, arg, tlobject, name=None):
@@ -424,7 +425,7 @@ def _write_arg_to_bytes(builder, arg, tlobject, name=None):
             # should NOT be sent either!
             builder.write("b'' if {0} is None or {0} is False "
                           "else b''.join((", name)
-        elif 'Bool' == arg.type:
+        elif arg.type == 'Bool':
             # `False` is a valid value for this type, so only check for `None`.
             builder.write("b'' if {0} is None else (", name)
         else:
@@ -471,7 +472,7 @@ def _write_arg_to_bytes(builder, arg, tlobject, name=None):
             )
             builder.write(')')
 
-    elif 'int' == arg.type:
+    elif arg.type == 'int':
         # User IDs are becoming larger than 2³¹ - 1, which would translate
         # into reading a negative ID, which we would treat as a chat. So
         # special case them to read unsigned. See https://t.me/BotNews/57.
@@ -481,32 +482,32 @@ def _write_arg_to_bytes(builder, arg, tlobject, name=None):
             # struct.pack is around 4 times faster than int.to_bytes
             builder.write("struct.pack('<i', {})", name)
 
-    elif 'long' == arg.type:
+    elif arg.type == 'long':
         builder.write("struct.pack('<q', {})", name)
 
-    elif 'int128' == arg.type:
+    elif arg.type == 'int128':
         builder.write("{}.to_bytes(16, 'little', signed=True)", name)
 
-    elif 'int256' == arg.type:
+    elif arg.type == 'int256':
         builder.write("{}.to_bytes(32, 'little', signed=True)", name)
 
-    elif 'double' == arg.type:
+    elif arg.type == 'double':
         builder.write("struct.pack('<d', {})", name)
 
-    elif 'string' == arg.type:
+    elif arg.type == 'string':
         builder.write('self.serialize_bytes({})', name)
 
-    elif 'Bool' == arg.type:
+    elif arg.type == 'Bool':
         # 0x997275b5 if boolean else 0xbc799737
         builder.write(r"b'\xb5ur\x99' if {} else b'7\x97y\xbc'", name)
 
-    elif 'true' == arg.type:
+    elif arg.type == 'true':
         pass  # These are actually NOT written! Only used for flags
 
-    elif 'bytes' == arg.type:
+    elif arg.type == 'bytes':
         builder.write('self.serialize_bytes({})', name)
 
-    elif 'date' == arg.type:  # Custom format
+    elif arg.type == 'date':  # Custom format
         builder.write('self.serialize_datetime({})', name)
 
     else:

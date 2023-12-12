@@ -268,7 +268,7 @@ class Message(ChatGetter, SenderGetter, TLObject):
             # ...or...
             # incoming messages in private conversations no longer have from_id
             # (layer 119+), but the sender can only be the chat we're in.
-            if post or (not out and isinstance(peer_id, types.PeerUser)):
+            if post or (not out and isinstance(peer_id, (types.PeerUser, types.PeerChannel))):
                 sender_id = utils.get_peer_id(peer_id)
 
         # Note that these calls would reset the client
@@ -333,6 +333,21 @@ class Message(ChatGetter, SenderGetter, TLObject):
     # endregion Initialization
 
     # region Public Properties
+    
+    @property
+    def message_link(self):
+        if hasattr(self.chat, "username") and self.chat.username:
+            return f"https://t.me/{self.chat.username}/{self.id}"
+        if (self.chat and self.chat.id):
+            chat = self.chat.id
+        elif self.chat_id:
+            if str(self.chat_id).startswith("-" or "-100"):
+                chat = int(str(self.chat_id).replace("-100", "").replace("-", ""))
+            else:
+                chat = self.chat_id
+        else:
+            return
+        return f"https://t.me/c/{chat}/{self.id}"
 
     @property
     def client(self):
@@ -352,12 +367,11 @@ class Message(ChatGetter, SenderGetter, TLObject):
         parse mode. Will be `None` for :tl:`MessageService`.
         """
         if self._text is None and self._client:
-            if not self._client.parse_mode:
-                self._text = self.message
-            else:
-                self._text = self._client.parse_mode.unparse(
-                    self.message, self.entities)
-
+            self._text = (
+                self._client.parse_mode.unparse(self.message, self.entities)
+                if self._client.parse_mode
+                else self.message
+            )
         return self._text
 
     @text.setter
@@ -513,9 +527,10 @@ class Message(ChatGetter, SenderGetter, TLObject):
         """
         The :tl:`WebPage` media in this message, if any.
         """
-        if isinstance(self.media, types.MessageMediaWebPage):
-            if isinstance(self.media.webpage, types.WebPage):
-                return self.media.webpage
+        if isinstance(self.media, types.MessageMediaWebPage) and isinstance(
+            self.media.webpage, types.WebPage
+        ):
+            return self.media.webpage
 
     @property
     def audio(self):
@@ -732,22 +747,14 @@ class Message(ChatGetter, SenderGetter, TLObject):
             if not self.reply_to:
                 return None
 
-            # Bots cannot access other bots' messages by their ID.
-            # However they can access them through replies...
-            self._reply_message = await self._client.get_messages(
-                await self.get_input_chat() if self.is_channel else None,
-                ids=types.InputMessageReplyTo(self.id)
-            )
-            if not self._reply_message:
-                # ...unless the current message got deleted.
-                #
-                # If that's the case, give it a second chance accessing
-                # directly by its ID.
+            else:
                 self._reply_message = await self._client.get_messages(
+                    await self.get_input_chat() if self.is_channel else None,
+                    ids=types.InputMessageReplyTo(self.id),
+                ) or await self._client.get_messages(
                     self._input_chat if self.is_channel else None,
-                    ids=self.reply_to.reply_to_msg_id
+                    ids=self.reply_to.reply_to_msg_id,
                 )
-
         return self._reply_message
 
     async def respond(self, *args, **kwargs):

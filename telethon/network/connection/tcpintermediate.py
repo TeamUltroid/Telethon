@@ -33,9 +33,7 @@ class RandomizedIntermediatePacketCodec(IntermediatePacketCodec):
     async def read_packet(self, reader):
         packet_with_padding = await super().read_packet(reader)
         pad_size = len(packet_with_padding) % 4
-        if pad_size > 0:
-            return packet_with_padding[:-pad_size]
-        return packet_with_padding
+        return packet_with_padding[:-pad_size] if pad_size > 0 else packet_with_padding
 
 
 class ConnectionTcpIntermediate(Connection):

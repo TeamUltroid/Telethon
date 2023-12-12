@@ -33,10 +33,7 @@ def _syncify_wrap(t, method_name):
     def syncified(*args, **kwargs):
         coro = method(*args, **kwargs)
         loop = helpers.get_running_loop()
-        if loop.is_running():
-            return coro
-        else:
-            return loop.run_until_complete(coro)
+        return coro if loop.is_running() else loop.run_until_complete(coro)
 
     # Save an accessible reference to the original method
     setattr(syncified, '__tl.sync', method)
@@ -54,9 +51,10 @@ def syncify(*types):
     # about asyncgenfunction's here.
     for t in types:
         for name in dir(t):
-            if not name.startswith('_') or name == '__call__':
-                if inspect.iscoroutinefunction(getattr(t, name)):
-                    _syncify_wrap(t, name)
+            if (
+                not name.startswith('_') or name == '__call__'
+            ) and inspect.iscoroutinefunction(getattr(t, name)):
+                _syncify_wrap(t, name)
 
 
 syncify(TelegramClient, _TakeoutClient, Draft, Dialog, MessageButton,
