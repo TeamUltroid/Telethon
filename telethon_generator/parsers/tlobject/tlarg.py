@@ -5,13 +5,9 @@ def _fmt_strings(*dicts):
     for d in dicts:
         for k, v in d.items():
             if v in ('None', 'True', 'False'):
-                d[k] = '<strong>{}</strong>'.format(v)
+                d[k] = f'<strong>{v}</strong>'
             else:
-                d[k] = re.sub(
-                    r'([brf]?([\'"]).*\2)',
-                    lambda m: '<em>{}</em>'.format(m.group(1)),
-                    v
-                )
+                d[k] = re.sub(r'([brf]?([\'"]).*\2)', lambda m: f'<em>{m.group(1)}</em>', v)
 
 
 KNOWN_NAMED_EXAMPLES = {
@@ -127,18 +123,13 @@ class TLArg:
             # Strip the exclamation mark always to have only the name
             self.type = arg_type.lstrip('!')
 
-            # The type may be a flag (FLAGS.IDX?REAL_TYPE)
-            # FLAGS can be any name, but it should have appeared previously.
-            flag_match = re.match(r'(\w+).(\d+)\?([\w<>.]+)', self.type)
-            if flag_match:
+            if flag_match := re.match(r'(\w+).(\d+)\?([\w<>.]+)', self.type):
                 self.flag = flag_match.group(1)
                 self.flag_index = int(flag_match.group(2))
                 # Update the type to match the exact type, not the "flagged" one
                 self.type = flag_match.group(3)
 
-            # Then check if the type is a Vector<REAL_TYPE>
-            vector_match = re.match(r'[Vv]ector<([\w\d.]+)>', self.type)
-            if vector_match:
+            if vector_match := re.match(r'[Vv]ector<([\w\d.]+)>', self.type):
                 self.is_vector = True
 
                 # If the type's first letter is not uppercase, then
@@ -180,31 +171,27 @@ class TLArg:
             'bytes': 'bytes',
             'Bool': 'bool',
             'true': 'bool',
-        }.get(cls, "'Type{}'".format(cls))
+        }.get(cls, f"'Type{cls}'")
         if self.is_vector:
-            result = 'List[{}]'.format(result)
+            result = f'List[{result}]'
         if self.flag and cls != 'date':
-            result = 'Optional[{}]'.format(result)
+            result = f'Optional[{result}]'
 
         return result
 
     def real_type(self):
-        # Find the real type representation by updating it as required
-        real_type = self.type
-        if self.flag_indicator:
-            real_type = '#'
-
+        real_type = '#' if self.flag_indicator else self.type
         if self.is_vector:
             if self.use_vector_id:
-                real_type = 'Vector<{}>'.format(real_type)
+                real_type = f'Vector<{real_type}>'
             else:
-                real_type = 'vector<{}>'.format(real_type)
+                real_type = f'vector<{real_type}>'
 
         if self.is_generic:
-            real_type = '!{}'.format(real_type)
+            real_type = f'!{real_type}'
 
         if self.flag:
-            real_type = '{}.{}?{}'.format(self.flag, self.flag_index, real_type)
+            real_type = f'{self.flag}.{self.flag_index}?{real_type}'
 
         return real_type
 
@@ -213,7 +200,7 @@ class TLArg:
         if self.generic_definition:
             return '{{{}:{}}}'.format(name, self.real_type())
         else:
-            return '{}:{}'.format(name, self.real_type())
+            return f'{name}:{self.real_type()}'
 
     def __repr__(self):
         return str(self).replace(':date', ':int').replace('?date', '?int')
@@ -232,14 +219,15 @@ class TLArg:
             f.write('other_request')
             return
 
-        known = (KNOWN_NAMED_EXAMPLES.get((self.name, self.type))
-                 or KNOWN_TYPED_EXAMPLES.get(self.type)
-                 or KNOWN_TYPED_EXAMPLES.get(SYNONYMS.get(self.type)))
-        if known:
+        if known := (
+            KNOWN_NAMED_EXAMPLES.get((self.name, self.type))
+            or KNOWN_TYPED_EXAMPLES.get(self.type)
+            or KNOWN_TYPED_EXAMPLES.get(SYNONYMS.get(self.type))
+        ):
             f.write(known)
             return
 
-        assert self.omit_example() or self.cls, 'TODO handle ' + str(self)
+        assert self.omit_example() or self.cls, f'TODO handle {str(self)}'
 
         # Pick an interesting example if any
         for cls in self.cls:

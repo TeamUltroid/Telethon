@@ -501,8 +501,7 @@ class Message(ChatGetter, SenderGetter, TLObject):
         etc., without having to manually inspect the ``document.attributes``.
         """
         if not self._file:
-            media = self.photo or self.document
-            if media:
+            if media := self.photo or self.document:
                 self._file = File(media)
 
         return self._file
@@ -1073,10 +1072,7 @@ class Message(ChatGetter, SenderGetter, TLObject):
 
             if i is None:
                 i = 0
-            if j is None:
-                return self._buttons_flat[i]
-            else:
-                return self._buttons[i][j]
+            return self._buttons_flat[i] if j is None else self._buttons[i][j]
 
         button = find_button()
         if button:
@@ -1178,10 +1174,10 @@ class Message(ChatGetter, SenderGetter, TLObject):
                 if isinstance(button, types.KeyboardButtonSwitchInline):
                     # no via_bot_id means the bot sent the message itself (#1619)
                     if button.same_peer or not self.via_bot_id:
-                        bot = self.input_sender
-                        if not bot:
+                        if bot := self.input_sender:
+                            return bot
+                        else:
                             raise ValueError('No input sender')
-                        return bot
                     else:
                         try:
                             return self._client._mb_entity_cache.get(
@@ -1194,12 +1190,9 @@ class Message(ChatGetter, SenderGetter, TLObject):
         Helper method to return the document only if it has an attribute
         that's an instance of the given kind, and passes the condition.
         """
-        doc = self.document
-        if doc:
+        if doc := self.document:
             for attr in doc.attributes:
                 if isinstance(attr, kind):
-                    if not condition or condition(attr):
-                        return doc
-                    return None
+                    return doc if not condition or condition(attr) else None
 
     # endregion Private Methods

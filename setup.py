@@ -186,10 +186,11 @@ def main(argv):
             return
 
         remove_dirs = ['__pycache__', 'build', 'dist', 'Telethon.egg-info']
-        for root, _dirs, _files in os.walk(LIBRARY_DIR, topdown=False):
-            # setuptools is including __pycache__ for some reason (#1605)
-            if root.endswith('/__pycache__'):
-                remove_dirs.append(root)
+        remove_dirs.extend(
+            root
+            for root, _dirs, _files in os.walk(LIBRARY_DIR, topdown=False)
+            if root.endswith('/__pycache__')
+        )
         for x in remove_dirs:
             shutil.rmtree(x, ignore_errors=True)
 
