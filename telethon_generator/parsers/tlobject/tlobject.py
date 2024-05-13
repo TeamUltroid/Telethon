@@ -46,25 +46,24 @@ class TLObject:
         else:
             self.id = int(object_id, base=16)
             whitelist = WHITELISTED_MISMATCHING_IDS[0] |\
-                WHITELISTED_MISMATCHING_IDS.get(layer, set())
+                    WHITELISTED_MISMATCHING_IDS.get(layer, set())
 
             if self.fullname not in whitelist:
-                assert self.id == self.infer_id(),\
-                    'Invalid inferred ID for ' + repr(self)
+                assert self.id == self.infer_id(), f'Invalid inferred ID for {repr(self)}'
 
         self.class_name = snake_to_camel_case(
             self.name, suffix='Request' if self.is_function else '')
 
-        self.real_args = list(a for a in self.sorted_args() if not
-                              (a.flag_indicator or a.generic_definition))
+        self.real_args = [
+            a
+            for a in self.sorted_args()
+            if not (a.flag_indicator or a.generic_definition)
+        ]
 
     @property
     def innermost_result(self):
         index = self.result.find('<')
-        if index == -1:
-            return self.result
-        else:
-            return self.result[index + 1:-1]
+        return self.result if index == -1 else self.result[index + 1:-1]
 
     def sorted_args(self):
         """Returns the arguments properly sorted and ready to plug-in
@@ -75,17 +74,9 @@ class TLObject:
                       key=lambda x: bool(x.flag) or x.can_be_inferred)
 
     def __repr__(self, ignore_id=False):
-        if self.id is None or ignore_id:
-            hex_id = ''
-        else:
-            hex_id = '#{:08x}'.format(self.id)
-
-        if self.args:
-            args = ' ' + ' '.join([repr(arg) for arg in self.args])
-        else:
-            args = ''
-
-        return '{}{}{} = {}'.format(self.fullname, hex_id, args, self.result)
+        hex_id = '' if self.id is None or ignore_id else '#{:08x}'.format(self.id)
+        args = ' ' + ' '.join([repr(arg) for arg in self.args]) if self.args else ''
+        return f'{self.fullname}{hex_id}{args} = {self.result}'
 
     def infer_id(self):
         representation = self.__repr__(ignore_id=True)
